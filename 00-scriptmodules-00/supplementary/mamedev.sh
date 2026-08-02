@@ -25,7 +25,7 @@ rp_module_desc="Add MAME/lr-mame/lr-mess systems"
 rp_module_section="config"
 
 rp_module_build="Default"
-rp_module_version="0287.00"
+rp_module_version="0289.00"
 rp_module_version_database="${rp_module_version%.*}"
 if [[ -f $emudir/mame/mame ]];then
  #works in terminal but not here ?
@@ -38,7 +38,7 @@ if [[ -f $emudir/mame/mame ]];then
 fi
 rp_module_database_version=
 rp_module_database_excluded_versions=()
-rp_module_database_excluded_versions=( 242 244 254 256 257 268 269 270 273)
+rp_module_database_excluded_versions=( 242 244 254 256 257 268 269 270 273 288)
 rp_module_database_versions=()
 #reading from internet seems to fail sometimes, perhaps due to a bad connection
 #rp_module_database_versions=( "" $(curl -s https://github.com/FollyMaddy/RetroPie-Share/tree/main/00-databases-00/mame|sed 's/:/\\\n/g'|grep _info\"|grep path|grep -v 023|grep -E -o '[0-9.]+'|sort -r) )
@@ -88,6 +88,10 @@ __XDG_SESSION_TYPE = ${__XDG_SESSION_TYPE}\n\
 
     show_message_mamedev "\
                                                  One time update info\n\
+
+289.00 :\n\
+- add database\n\
+- exclude 288\n\
 287.00 :\n\
 - add database\n\
 286.00 :\n\
