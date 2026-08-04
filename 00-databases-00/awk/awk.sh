@@ -73,7 +73,25 @@ awk -F '[<>"]' '
 #from 289 using lineNR instead of matchNR because from 289 coin info is also added regarding the Neo Mania Adapter JAMMA board in non-arcade computers
 #the xml info of these adapter boards are added after the initial machine so the lineNR with the adapter coin info is between the 80 and 340 lines to filter them out
 #{if (NR < 100 && /input coins/ || NR < 340 && /input players=/ && /coins=/) print NR " " match($0,"coins") $0}
-{if (NR < 100 && /input coins/ || NR < 340 && /input players=/ && /coins=/) {if (match($0,"coins=") <= 20) _arcade = "non-arcade";else _arcade = "arcade"}}
+
+#working line to get lineNR for first match of first machine but with using exit it is not possible to use the variable later on
+#!c && /<\/machine/ { c=1; next };c {if (--c == 0) _line=NR-1;print _line;exit}
+
+#better approach example
+#/coins=/ {if (!found_coins) {print "First occurrence of 'coins' on line:", NR;found_coins = 1;coin_match = NR}}
+#/<\/machine/ && !found_coins {if (!found_machine) {print "First occurrence of 'machine' after 'coins' on line:", NR;found_machine = 1;machine_match = NR}}
+/coins=/ {if (!found_coins) {found_coins = 1;coin_match = NR}}
+/<\/machine/ && !found_coins {if (!found_machine) {found_machine = 1;machine_match = NR}}
+#take into account that some vars stay empty, check with next line, if machine_match is empty a space is seen, if coin_match is empty no space is seen
+#{print machine_match " " coin_match}
+{if (machine_match < coin_match || coin_match == "") _arcade = "non-arcade"}
+{if (machine_match == "" ) _arcade = "arcade"}
+
+#old working command to get a fast fix for 0289
+#although working many machine xml entries will not end at 340 but differ a lot, above code fixes that
+#{if (NR < 100 && /input coins/ || NR < 340 && /input players=/ && /coins=/) {if (match($0,"coins=") <= 20) _arcade = "non-arcade";else _arcade = "arcade"}}
+
+
 # bios
 /isbios=/ {if ($7 ~ "yes") _tags = _tags "bios" "@"}
 # electromechanical
