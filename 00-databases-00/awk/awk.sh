@@ -160,7 +160,7 @@ if ( " 005 3bagfull astrof battles bbc blockade bowl3d buckrog carnival circus c
 if (_cache ~ "atari/" && _tags ~ "@arcade@" && _tags !~ "@mechanical@" && _tags !~ "@screenless@" && _tags !~ "@bios@") _tags = _tags "atari" "@"
 
 # accutime , drivers will be detected when emulation is tagged good
-if (_cache ~ "hh_mediatek_mt6260a" && _tags ~ "@good@") _tags = _tags "accutime" "@"
+if (_driverinfo ~ "Kids Smart Watch" && _tags ~ "@good@") _tags = _tags "accutime" "@"
 
 # bootlegs
 if (_driverarr[3] ~ "bootleg" || _driverarr[4] ~ "bootleg") _tags = _tags "bootlegs" "@"
