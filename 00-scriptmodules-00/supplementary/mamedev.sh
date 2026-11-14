@@ -25,7 +25,7 @@ rp_module_desc="Add MAME/lr-mame/lr-mess systems"
 rp_module_section="config"
 
 rp_module_build="Default"
-rp_module_version="0290.pre-beta-14 (289)"
+rp_module_version="0290.pre-beta-15 (289)"
 rp_module_version_database="${rp_module_version%.*}"
 if [[ -f $emudir/mame/mame ]];then
  #works in terminal but not here ?
@@ -91,7 +91,7 @@ __XDG_SESSION_TYPE = ${__XDG_SESSION_TYPE}\n\
     show_message_mamedev "\
                                                  One time update info\n\
 
-290.pre-beta-14 :\n\
+290.pre-beta-15 :\n\
 - add beta 289 testdatabase as 290\n\
 - remember 290 is not out yet !\n\
 - remove retroscraper (server down)\n\
@@ -99,9 +99,10 @@ __XDG_SESSION_TYPE = ${__XDG_SESSION_TYPE}\n\
 - function YESNO : possibility to do something when selection NO\n
 - be able to use 2 gdrives for getting and installing mame binaries\n
 - read latest database in the beginning and fix database not in array\n
+- do not download the database file when updating the script\n
 - automatically get the available sample pack when downloading\n
-- turn-off cheatfile download (cloudflare block)(needs fixing)\n
-- when updating script do not download database file\n
+- old function for mamecheats.co.uk, with cloudfare block, removed\n
+- download the cheatfile 279 another way again\n
 289.00 :\n\
 - add database\n\
 - exclude 288\n\
@@ -1445,7 +1446,8 @@ function subgui_addons_mamedev () {
 ",Download retroarch-joypad-autoconfigs (+/-1 min.),,download_from_github_mamedev  libretro/retroarch-joypad-autoconfig/tree/master/udev $rootdir/configs/all/retroarch-joypads cfg;download_from_github_mamedev  FollyMaddy/RetroPie-Share/tree/main/00-retroarch-00/retroarch-joypad-autoconfig $rootdir/configs/all/retroarch-joypads cfg,,,,,show_message_mamedev \"The autoconfig files mentioned in this option are used to recognize input devices and to automatically setup the default mappings between the physical device and the RetroPad virtual controller.\nThe configs come from :\nhttps://github.com/libretro/retroarch-joypad-autoconfig/tree/master/udev\nhttps://github.com/FollyMaddy/RetroPie-Share/tree/main/00-retroarch-00/retroarch-joypad-autoconfig\n\nThe configs are placed in :\n$rootdir/configs/all/retroarch-joypads\","
 ",Download lr-mess configs for better button mapping (+/-1 min.),,download_from_google_drive_mamedev 1Js34M6b8n97CUp_Bf_x4FfpG68oKL3I5 $rootdir/configs,,,,,show_message_mamedev \"Most handheld games don't use the same joystick layout. To make it more universal @bbilford83 made some custom configs. Basically it means that the shooter button is always the same in these games.\n\nThe added game button configs are for the categories :\n- konamih ($rootdir/configs/konamih/lr-mess)\n- tigerh ($rootdir/configs/tigerh/lr-mess)\n\nKnown compatible joypads are :\n- 8bitdo\n- BigBen\n- PiBoy\n\nFiles are downloaded from the google-drive of @bbilford83 :\n1RTxt9lZpGwtbNsrPRV9_FJChpk_iDiDE\","
 ",,,,"
-#",►Download cheatfile from list,,subgui_download_cheat_mamedev,,,,,show_message_mamedev \"When this script installs a system or category the cheat option in the configs will be turned on in lr-mess/lr-mame and MAME. Together with the cheat file you will be able to use cheats on certain games. The cheat file used can be found on http://www.mamecheat.co.uk\","
+
+",►Download / install cheatfile (279),,download_extra_files_mamedev 17RwDMSkoinMM510YcWTf8o3xsknpn1fy cheat0279.zip cheat cheat.7z,,,,,show_message_mamedev \"When this script installs a system or category the cheat option in the configs will be turned on in lr-mess/lr-mame and MAME. Together with the cheat file you will be able to use cheats on certain games. The cheat file used can be found on http://www.mamecheat.co.uk\","
 ",►Download / create gamelists,,subgui_gamelists_mamedev,,,,,show_message_mamedev \"Here you will find the options to use use RetroScraper and to install predefined gamelists with videos and pictures. These are created to have a good preview in emulationstation of the games you can select. In contrary to where the gamelists are normally stored these gamelists are stored in :\n~$datadir/roms/<system>\nThis makes it easier to backup the gamelists together with your roms and it prevents from overwriting gamelist files in other locations.\n\nWhen selecting this option all available gamelists with media are downloaded.\","
 	)
 	[[ $(expr $rp_module_version_database + 0) -gt 273 ]] && \
@@ -1479,24 +1481,6 @@ function subgui_databases_mamedev() {
 }
 
 
-function subgui_download_cheat_mamedev() {
-	show_message_mamedev "\
-A list of cheats from mamecheats.co.uk will be presented.\n\
-Selecting one will download the selected cheatfiles in /tmp/\n\
-Then it will be extracted and overwritten in :\n\
-- $datadir/BIOS/mame/cheat (for lr-mame/lr-mess)\n\
-- $datadir/roms/mame/cheat (for mame)"
-    local csv=()
-    #the first value is reserved for the column descriptions
-    csv=( ",,,," )
-    local mamecheat_read
-    clear
-    echo "reading the available binaries"
-    while read mamecheat_read;do csv+=("$mamecheat_read");done < <(IFS=$'\n'; curl https://www.mamecheat.co.uk/mame_downloads.htm|grep ">XML"|sed 's/</"/g;s/>/"/g;s/XML //g;s/Release Date: //g'|while read line;do echo "\",$(echo $line|cut -d\" -f7),,download_extra_files_mamedev https://www.mamecheat.co.uk $(echo $line|cut -d\" -f5) cheat cheat.7z,\"";done)
-    build_menu_mamedev
-}
-
-
 function direct_install_mamedev() {
     local csv=()
     local driver_name
@@ -1514,7 +1498,6 @@ function direct_install_mamedev() {
 2>&1 >/dev/tty \
 )
 clear
-#read_data_mamedev clear
 #get non-arcade/arcade status from database
 IFS=$'\n' driver_info=($(awk "/,$driver_name,/" <<<$(sed 's/" "/"\n"/g' <<<"${mamedev_csv[*]}")));unset IFS
 if [[ ${driver_info[@]} == *@non-arcad* ]]
@@ -2198,7 +2181,6 @@ dialog \
     clear
     if [[ $(echo $website_url|sha1sum) == 241013beb0faf19bf5d76d74507eadecdf45348e* ]];then
     mkdir -p $destination_path
-    #read_data_mamedev clear
     IFS=$'\n' restricted_download_csv=($(cut -d "," -f 2 <<<$(awk $search_input<<<$(sed 's/\" \"/\"\n\"/g'<<<"${mamedev_csv[*]}"))));unset IFS
     for rd in ${!restricted_download_csv[@]};do 
     #echo ${restricted_download_csv[$rd]}
@@ -2276,7 +2258,6 @@ dialog \
 
     clear
     mkdir -p $destination_path
-    #read_data_mamedev clear
     IFS=$'\n' restricted_download_csv=($(cut -d "," -f 2 <<<$(awk $search_input<<<$(sed 's/\" \"/\"\n\"/g'<<<"${mamedev_csv[*]}"))));unset IFS
 	#echo ${mamedev_csv[1]}
 	#echo ${restricted_download_csv[1]}
@@ -2397,7 +2378,6 @@ function create_00index_file_mamedev() {
     local index_file="0 rom-index 0"
     clear
     mkdir -p $destination_path
-    #read_data_mamedev clear
     IFS=$'\n' restricted_download_csv=($(cut -d "," -f 2 <<<$(awk $search_input<<<$(sed 's/\" \"/\"\n\"/g'<<<"${mamedev_csv[*]}"))));unset IFS
 	echo "creating a "$index_file" file for this specific category"
     [[ -f "$destination_path/$index_file" ]] && rm "$destination_path/$index_file" 2>&1
@@ -2410,7 +2390,6 @@ function create_00index_file_mamedev() {
 
 function create_systems_list_mamedev() {
     local csv=()
-    #read_data_mamedev clear
     #we have to do a global comparison as the alfabetical order contains also a letter in the $1
     if [[ $1 == descriptions* ]];then
     #here we store the sorted mamedev_csv values in the csv array
@@ -3574,24 +3553,29 @@ echo "get the $3 file and extract the files in the correct paths to :"
 echo "- $datadir/roms/mame/$3"
 echo "- $datadir/BIOS/mame/$3"
 echo
-#$1=weblink $2=filename $3=mame-folder $4=file_within_compressed_file_if_necessary $5=uncompress_extracted__7z_file
-wget -N -P /tmp $1/$2
+#$1=weblink/gd-id $2=filename $3=mame-folder $4=file_within_compressed_file_if_necessary $5=uncompress_extracted__7z_file
+if [[ $3 == "cheat" ]];then
+	su $user -c "curl https://raw.githubusercontent.com/matthuisman/gdrivedl/master/gdrivedl.py | /home/$user/.local/bin/uv run --python 3.11 - https://drive.google.com/file/d/$1 -m -P /tmp"
+else
+	wget -N -P /tmp $1/$2
+fi
 #folderpath for mame
-#${2##*/} is used  to get rid of the extra extension for the cheatfile
-unzip -o /tmp/${2##*/} $4 -d $datadir/roms/mame/$3
+unzip -o /tmp/${2} $4 -d $datadir/roms/mame/$3
 if [[ $5 == extract_7z ]];then
 7za -y x $datadir/roms/mame/$3/$4 -o$datadir/roms/mame/$3
 rm $datadir/roms/mame/$3/$4
 fi
 chown -R $user:$user "$datadir/roms/mame/$3" 
 #folderpath for lr-mame/lr-mess
-unzip -o /tmp/${2##*/} $4 -d $datadir/BIOS/mame/$3
+unzip -o /tmp/${2} $4 -d $datadir/BIOS/mame/$3
 if [[ $5 == extract_7z ]];then
 7za -y x $datadir/BIOS/mame/$3/$4 -o$datadir/BIOS/mame/$3
 rm $datadir/BIOS/mame/$3/$4
 fi
 chown -R $user:$user "$datadir/BIOS/mame/$3" 
-rm /tmp/${2##*/}
+rm /tmp/${2}
+#see what has been done
+sleep 5
 }
 
 
@@ -3702,7 +3686,6 @@ echo
 #added handheld arrays, used for overlays
 #this is an example command to extract the systems and add them here to the array :
 #classich=( "\"$(cat mame_systems_dteam_classich|cut -d " " -f2)\"" );echo ${classich[@]}|sed 's/ /\" \"/g'
-#read_data_mamedev clear
 IFS=$'\n' 
 classich=($(cut -d "," -f 2 <<<$(awk /@classich/<<<$(sed 's/\" \"/\"\n\"/g'<<<"${mamedev_csv[*]}"))))
 konamih=($(cut -d "," -f 2 <<<$(awk /@konamih/<<<$(sed 's/\" \"/\"\n\"/g'<<<"${mamedev_csv[*]}"))))
@@ -3758,7 +3741,6 @@ echo
 #added handheld arrays, used for overlays
 #this is an example command to extract the systems and add them here to the array :
 #classich=( "\"$(cat mame_systems_dteam_classich|cut -d " " -f2)\"" );echo ${classich[@]}|sed 's/ /\" \"/g'
-#read_data_mamedev clear
 IFS=$'\n' 
 classich=($(cut -d "," -f 2 <<<$(awk /@classich/<<<$(sed 's/\" \"/\"\n\"/g'<<<"${mamedev_csv[*]}"))))
 konamih=($(cut -d "," -f 2 <<<$(awk /@konamih/<<<$(sed 's/\" \"/\"\n\"/g'<<<"${mamedev_csv[*]}"))))
