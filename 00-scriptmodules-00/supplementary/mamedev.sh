@@ -25,31 +25,24 @@ rp_module_desc="Add MAME/lr-mame/lr-mess systems"
 rp_module_section="config"
 
 rp_module_build="Default"
-rp_module_version="0290.pre-beta-15 (289)"
+rp_module_version="0290.pre-beta-16 (289)"
 rp_module_version_database="${rp_module_version%.*}"
 if [[ -f $emudir/mame/mame ]];then
- #works in terminal but not here ?
- #rp_module_version_mame="${"${"${$($emudir/mame/mame -version)}"/./}": 0:4}"
- #extracting the first version number from the output using seperate lines instead (Shell Parameter Expansion)
- rp_module_version_mame="$($emudir/mame/mame -version)"
- rp_module_version_mame="${rp_module_version_mame/./}"
- rp_module_version_mame="${rp_module_version_mame: 0:4}"
- [[ ${rp_module_version_mame} != 0* ]] && rp_module_version_mame="UNKNOWN"
+	rp_module_version_mame="$($emudir/mame/mame -version)"
+	rp_module_version_mame="${rp_module_version_mame/./}"
+	rp_module_version_mame="${rp_module_version_mame: 0:4}"
+	[[ ${rp_module_version_mame} != 0* ]] && rp_module_version_mame="UNKNOWN"
 fi
-rp_module_database_version=
+
 rp_module_database_excluded_versions=()
 rp_module_database_excluded_versions=( 242 244 254 256 257 268 269 270 273 288)
 rp_module_database_versions=()
-#reading from internet seems to fail sometimes, perhaps due to a bad connection
-#rp_module_database_versions=( "" $(curl -s https://github.com/FollyMaddy/RetroPie-Share/tree/main/00-databases-00/mame|sed 's/:/\\\n/g'|grep _info\"|grep path|grep -v 023|grep -E -o '[0-9.]+'|sort -r) )
-#instead using a sequence now with a few exclusions from the array
-#used this information on how to use the seq command : https://stackoverflow.com/questions/169511/how-do-i-iterate-over-a-range-of-numbers-defined-by-variables-in-bash
-#used this information to construct the command : https://stackoverflow.com/questions/3685970/check-if-a-bash-array-contains-a-value
+#do not read available versions from the internet as this seems to fail sometimes
 rp_module_database_versions=( "" $(seq $rp_module_version_database -1 0240|while read rp_module_database_version;do [[ " ${rp_module_database_excluded_versions[*]} " =~ " ${rp_module_database_version} " ]] || echo "0${rp_module_database_version}";done) )
+rp_module_database_version=
 
 local mamedev_csv=()
 local gamelists_csv=()
-
 local restricted_download_csv=()
 local system_read
 
@@ -58,23 +51,22 @@ function depends_mamedev() {
     mamedev_csv=()
     getDepends curl python3 wget ffmpeg
     if [[ $scriptdir == *RetroPie* ]];then 
-	getDepends xattr python3-venv unar p7zip-full xxd
-	#next can be removed when dependancies are added to mame.sh
-	[[ ${__platform_arch} == x86_64 ]] && getDepends qt6-base-dev qt6-base-dev-tools
+		getDepends xattr python3-venv unar p7zip-full xxd
+		#next can be removed when dependancies are added to mame.sh
+		[[ ${__platform_arch} == x86_64 ]] && getDepends qt6-base-dev qt6-base-dev-tools
     else 
-	getDepends python-xattr unarchiver tinyxxd
+		getDepends python-xattr unarchiver tinyxxd
     fi
-    
     #install uv python manager as normal user
     if [[ ! -f /home/$user/.local/bin/uv ]];then
-    echo "Installing Python manager UV"
-    su $user -c "curl -LsSf https://astral.sh/uv/install.sh | sh"
-    su $user -c "source /home/$user/.local/bin/env"
+		echo "Installing Python manager UV"
+		su $user -c "curl -LsSf https://astral.sh/uv/install.sh | sh"
+		su $user -c "source /home/$user/.local/bin/env"
 	fi
-    
+    #when the script-file doesn't contain any attribute text then it's a new file and the message(s) are shown 
     if [[ -z $(xattr -p user.comment $(if [[ -f $scriptdir/ext/RetroPie-Share/scriptmodules/supplementary/mamedev.sh ]];then echo $scriptdir/ext/RetroPie-Share/scriptmodules/supplementary/mamedev.sh;else echo $scriptdir/scriptmodules/supplementary/mamedev.sh;fi) 2>&-) ]];then
 
-    [[ $scriptdir == *ArchyPie* ]] &&  show_message_mamedev "\
+		[[ $scriptdir == *ArchyPie* ]] &&  show_message_mamedev "\
 You are running ArchyPie.\n\
 \n\
 Note that ArchyPie is beta and that some things do not work correctly.\n\
@@ -88,21 +80,22 @@ __XDG_SESSION_TYPE = ${__XDG_SESSION_TYPE}\n\
 "
 
 
-    show_message_mamedev "\
+		show_message_mamedev "\
                                                  One time update info\n\
 
-290.pre-beta-15 :\n\
+290.pre-beta-16 :\n\
 - add beta 289 testdatabase as 290\n\
 - remember 290 is not out yet !\n\
-- remove retroscraper (server down)\n\
+- remove retroscraper and functions (server down)\n\
 - add simple and improved gamelist creator\n\
 - function YESNO : possibility to do something when selection NO\n
 - be able to use 2 gdrives for getting and installing mame binaries\n
 - read latest database in the beginning and fix database not in array\n
 - do not download the database file when updating the script\n
 - automatically get the available sample pack when downloading\n
-- old function for mamecheats.co.uk, with cloudfare block, removed\n
+- old function for mamecheats.co.uk, with cloudflare block, removed\n
 - download the cheatfile 279 another way again\n
+- clean up until line nr 2560\n
 289.00 :\n\
 - add database\n\
 - exclude 288\n\
@@ -541,17 +534,18 @@ remove the predefined \"view\" from the config.\n\
 - do not install lr-mess runcommands when lr-mess is not installed\n\
 - do not install lr-mame runcommands when lr-mame is not installed\n\
 "
-    xattr -w user.comment "x" $(if [[ -f $scriptdir/ext/RetroPie-Share/scriptmodules/supplementary/mamedev.sh ]];then echo $scriptdir/ext/RetroPie-Share/scriptmodules/supplementary/mamedev.sh;else echo $scriptdir/scriptmodules/supplementary/mamedev.sh;fi)
-    fi
-    if [[ -f $emudir/mame/mame ]];then
-		if [[ ${rp_module_version_database} != ${rp_module_version_mame} ]];then
-			show_message_mamedev "Your standalone MAME version is different than the used MAME database !\n\nYour standalone MAME version is ${rp_module_version_mame}.\nThe used database version is ${rp_module_version_database}.\n\nIf needed then make sure you change it to match your mame version !\n\nWhen a database doesn't exist, select the closest one !"
+		#check if mame is installed and which version
+		xattr -w user.comment "x" $(if [[ -f $scriptdir/ext/RetroPie-Share/scriptmodules/supplementary/mamedev.sh ]];then echo $scriptdir/ext/RetroPie-Share/scriptmodules/supplementary/mamedev.sh;else echo $scriptdir/scriptmodules/supplementary/mamedev.sh;fi)
 		fi
-	else
-		show_message_mamedev "You haven't installed Stanalone MAME yet !\nMake sure you install Standalone MAME.\nThe script will extract data from Standalone MAME to function correctly.\n"
-	fi
-	#always read the database
-	read_data_mamedev clear
+		if [[ -f $emudir/mame/mame ]];then
+			if [[ ${rp_module_version_database} != ${rp_module_version_mame} ]];then
+				show_message_mamedev "Your standalone MAME version is different than the used MAME database !\n\nYour standalone MAME version is ${rp_module_version_mame}.\nThe used database version is ${rp_module_version_database}.\n\nIf needed then make sure you change it to match your mame version !\n\nWhen a database doesn't exist, select the closest one !"
+			fi
+		else
+			show_message_mamedev "You haven't installed Stanalone MAME yet !\nMake sure you install Standalone MAME.\nThe script will extract data from Standalone MAME to function correctly.\n"
+		fi
+		#always read the database
+		read_data_mamedev clear
 }
 
 
@@ -576,19 +570,18 @@ function gui_mamedev() {
 ",,,,,,,,,"
 ",►Link roms from folder ~/RetroPie/BIOS/mame,,show_message_mamedev \"Warning : files or links are forced overwritten\";subgui_link_roms_mamedev,,,,,show_message_mamedev \"Show categories and ultimately create hardlinks from files that are in ~/RetroPie/BIOS/mame.\nMake sure you have downloaded the whole set of roms and placed it in ~/RetroPie/BIOS/mame.\nFor example: get the mame-merged set and place all the files in in ~/RetroPie/BIOS/mame\nBy doing this you will also ensure that all the bios roms are in the correct directory so there will be no need to place bios files inside that folder again.\","
    )
-sleep 0.1
-[[ $(timeout 1 $([[ $scriptdir == *ArchyPie* ]] && echo tiny)xxd -a -c 1 $(ls /dev/input/by-path/*kbd|head -n 1)|grep ": 2a") == *2a* ]] &&\
-csv+=(
+	sleep 0.1
+	[[ $(timeout 1 $([[ $scriptdir == *ArchyPie* ]] && echo tiny)xxd -a -c 1 $(ls /dev/input/by-path/*kbd|head -n 1)|grep ": 2a") == *2a* ]] &&\
+	csv+=(
 ",►Browser/downloader ( restricted ),,subgui_archive_downloads_mamedev,,,,,show_message_mamedev \"Browse and get online files.\n(only available with the correct input)\","
 ",►Install UV,,install_uv_mamedev,,,,,show_message_mamedev \"Install UV and use older python versions and get python modules easier and faster\","
    )
-
     build_menu_mamedev
 }
 
 
 function help_categories_mamedev() {
-show_message_mamedev "\
+	show_message_mamedev "\
 In this subgui you can choose to install catergories.\n\
 The first set of categories are created and selected by @DTEAM :\n\
 - all_in1\n\
@@ -748,7 +741,6 @@ function subgui_categories_mamedev() {
 ",Arcade Category => shooter,@arcade,create_00index_file_mamedev '/@shooter/&&/@working_arcade/' $datadir/roms/shooter;install_system_mamedev shooter shooter '' '' 'none' '',,,,,show_message_mamedev \"This help page gives more info on force installing the shooter category.\n\nIt will :\n- create the rom folder\n- associate the mame and lr-mame loaders for this folder or category\n- create a rom index file (0 rom-index 0) inside the specific rom folder\n\nThe created index file contains the list of games.\n\n\Z2This category is implemented as recognisable category when istalling a default system.\","
 ",Arcade Category => slot_machine,@arcade,create_00index_file_mamedev '/@slot_machine/&&/@working_arcade/' $datadir/roms/slot_machine;install_system_mamedev slot_machine slot_machine '' '' 'none' '',,,,,show_message_mamedev \"This help page gives more info on force installing the slot_machine category.\n\nIt will :\n- create the rom folder\n- associate the mame and lr-mame loaders for this folder or category\n- create a rom index file (0 rom-index 0) inside the specific rom folder\n\nThe created index file contains the list of games.\n\n\Z2This category is implemented as recognisable category when istalling a default system.\","
 ",Arcade Category => sports,@arcade,create_00index_file_mamedev '/@sports/&&/@working_arcade/' $datadir/roms/sports;install_system_mamedev sports sports '' '' 'none' '',,,,,show_message_mamedev \"This help page gives more info on force installing the sports category.\n\nIt will :\n- create the rom folder\n- associate the mame and lr-mame loaders for this folder or category\n- create a rom index file (0 rom-index 0) inside the specific rom folder\n\nThe created index file contains the list of games.\n\n\Z2This category is implemented as recognisable category when istalling a default system.\","
-#",Arcade Category => upright,@arcade,create_00index_file_mamedev '/@upright/&&/@working_arcade/' $datadir/roms/upright;install_system_mamedev upright upright '' '' 'none' '',,,,,show_message_mamedev \"This help page gives more info on force installing the upright category.\n\nIt will :\n- create the rom folder\n- associate the mame and lr-mame loaders for this folder or category\n- create a rom index file (0 rom-index 0) inside the specific rom folder\n\nThe created index file contains the list of games.\n\n\Z1This category is NOT implemented as recognisable category when istalling a default system !\","
 ",,,,,,,,,"
 ",DECO cassette Arcade Category => deco_cassette90º,@arcade,create_00index_file_mamedev '/DECO/&&/@90º/' $datadir/roms/deco_cassette90º;install_system_mamedev deco_cassette90º deco_cassette90º '' '' 'none' '',,,,,show_message_mamedev \"This help page gives more info on force installing the deco_cassette90º category.\nWhen running roms from this directory it will rotate the game 90ºCW.\nSo use a monitor that you can turn !\n\nIt will :\n- create the rom folder\n- associate the mame and lr-mame loaders for this folder or category\n- create a rom index file (0 rom-index 0) inside the specific rom folder\n- add screenrotation in $rootdir/configs/deco_cassette90º/retroarch.cfg.basename\n\nThe created index file contains the list of games.\n\n\Z2This category is implemented as recognisable category when istalling a default system.\","
 ",Nintendo PlayChoice-10 Arcade Category => playchoice10_90º,@arcade,create_00index_file_mamedev '/\(PlayChoice-10\)/' $datadir/roms/playchoice10_90º;install_system_mamedev playchoice10_90º playchoice10_90º '' '' 'none' '',,,,,show_message_mamedev \"This help page gives more info on force installing the playchoice10_90º category.\n\nIt will :\n- create the rom folder\n- associate the mame and lr-mame loaders for this folder or category\n- create a rom index file (0 rom-index 0) inside the specific rom folder\n\nThe created index file contains the list of games.\n\n\Z2This category is implemented as recognisable category when istalling a default system.\","
@@ -761,16 +753,10 @@ function subgui_categories_mamedev() {
 ",Arcade Category => shooter90º,@arcade,create_00index_file_mamedev '/@shooter/&&/@90º/&&/@working_arcade/' $datadir/roms/shooter90º;install_system_mamedev shooter90º shooter90º '' '' 'none' '',,,,,show_message_mamedev \"This help page gives more info on force installing the shooter90º category.\nWhen running roms from this directory it will rotate the game 90ºCW.\nSo use a monitor that you can turn !\n\nIt will :\n- create the rom folder\n- associate the mame and lr-mame loaders for this folder or category\n- create a rom index file (0 rom-index 0) inside the specific rom folder\n- add screenrotation in $rootdir/configs/shooter90º/retroarch.cfg.basename\n\nThe created index file contains the list of games.\n\n\Z1This category is NOT implemented as recognisable category when istalling a default system !\","
 ",Arcade Category => slot_machine90º,@arcade,create_00index_file_mamedev '/@slot_machine/&&/@90º/&&/@working_arcade/' $datadir/roms/slot_machine90º;install_system_mamedev slot_machine90º slot_machine90º '' '' 'none' '',,,,,show_message_mamedev \"This help page gives more info on force installing the slot_machine90º category.\nWhen running roms from this directory it will rotate the game 90ºCW.\nSo use a monitor that you can turn !\n\nIt will :\n- create the rom folder\n- associate the mame and lr-mame loaders for this folder or category\n- create a rom index file (0 rom-index 0) inside the specific rom folder\n- add screenrotation in $rootdir/configs/slot_machine90º/retroarch.cfg.basename\n\nThe created index file contains the list of games.\n\n\Z1This category is NOT implemented as recognisable category when istalling a default system !\","
 ",Arcade Category => sports90º,@arcade,create_00index_file_mamedev '/@sports/&&/@90º/&&/@working_arcade/' $datadir/roms/sports90º;install_system_mamedev sports90º sports90º '' '' 'none' '',,,,,show_message_mamedev \"This help page gives more info on force installing the sports90º category.\nWhen running roms from this directory it will rotate the game 90ºCW.\nSo use a monitor that you can turn !\n\nIt will :\n- create the rom folder\n- associate the mame and lr-mame loaders for this folder or category\n- create a rom index file (0 rom-index 0) inside the specific rom folder\n- add screenrotation in $rootdir/configs/sports90º/retroarch.cfg.basename\n\nThe created index file contains the list of games.\n\n\Z1This category is NOT implemented as recognisable category when istalling a default system !\","
-#",Arcade Category => upright90º,@arcade,create_00index_file_mamedev '/@upright/&&/@90º/&&/@working_arcade/' $datadir/roms/upright90º;install_system_mamedev upright90º upright90º '' '' 'none' '',,,,,show_message_mamedev \"This help page gives more info on force installing the upright90º category.\nWhen running roms from this directory it will rotate the game 90ºCW.\nSo use a monitor that you can turn !\n\nIt will :\n- create the rom folder\n- associate the mame and lr-mame loaders for this folder or category\n- create a rom index file (0 rom-index 0) inside the specific rom folder\n- add screenrotation in $rootdir/configs/upright90º/retroarch.cfg.basename\n\nThe created index file contains the list of games.\n\n\Z1This category is NOT implemented as recognisable category when istalling a default system !\","
     )
     build_menu_mamedev
 }
-#working line to generate a custom non-arcade category (does NOT skip reading mame data)
-#",Forcing Non-Arcade Category => customh,@non-arcade,install_system_mamedev customh customh '' '' 'none' '',"
 
-#working lines to generate a custom arcade/non-arcade categories (adding @skip will skip reading mame data)
-#",Forcing Arcade Category => realistic,@arcade @skip,install_system_mamedev realistic realistic '' '' 'none' '',"
-#",Forcing Non-Arcade Category => customh,@non-arcade @skip,install_system_mamedev customh customh '' '' 'none' '',"
 
 function subgui_systems_extras_mamedev() {
     local csv=()
@@ -779,7 +765,7 @@ function subgui_systems_extras_mamedev() {
 ",►Systems: with extra options,,subgui_systems_extras_add_options_mamedev descriptions,,,,,show_message_mamedev \"Install systems with extra hardware that will working better than default.\n\nWARNING:\nSystems with extra hardware can have extra supported file extensions.\nTo keep the supported file extensions always do the extra install after a default install otherwise specific supported file extensions are wiped from the /etc/emulationstation/es_systems.cfg\","
 ",,,,,,,,,"
 	)
-sleep 0.1
+	sleep 0.1
 [[ $(timeout 1 $([[ $scriptdir == *ArchyPie* ]] && echo tiny)xxd -a -c 1 $(ls /dev/input/by-path/*kbd|head -n 1)|grep ": 2a") == *2a* ]] &&\
 	csv+=(
 ",▼\ZrBe warned : not always working correctly and need to be checked !,,,"
@@ -838,7 +824,7 @@ function subgui_configs_settings_mamedev() {
 	fi
 	
 	csv+=(
-	",,,,,,,,,"
+",,,,,,,,,"
 		)
 
 	if [[ $(grep -i "^video accel" "$configdir/mame/mame.ini") == "video accel" ]];then
@@ -879,7 +865,7 @@ function subgui_configs_settings_mamedev() {
 ",enable all recommended settings for bgfx from below,,iniConfig \" \" \"\" \"$configdir/mame/mame.ini\";iniSet \"video\" \"bgfx\";iniSet \"bgfx_path\" \"/opt/retropie/emulators/mame/bgfx\";iniSet \"artpath\" \"$emudir/mame/artwork;$romdir/mame/artwork;$romdir/arcade/artwork\";iniSet \"bgfx_backend\" \"vulkan\";iniSet \"bgfx_screen_chains\" \"crt-geom-deluxe\";chown $user:$user \"$configdir/mame/mame.ini\";#refresh,subgui_configs_settings_mamedev,,,,show_message_mamedev \"Enable all basic stuff of the new hardware accelerated renderer.\","
 
 		)
-	
+
 	if [[ $(grep -i "^video bgfx" "$configdir/mame/mame.ini") == "video bgfx" ]];then
 		csv+=(
 ", -disable bgfx video acceleration	\Z4(custom  : enabled now),,iniConfig \" \" \"\" \"$configdir/mame/mame.ini\";iniDel \"video\";iniSet \"video\" \"accel\";chown $user:$user \"$configdir/mame/mame.ini\";#refresh,subgui_configs_settings_mamedev,,,,show_message_mamedev \"Disable the new hardware accelerated renderer.\","
@@ -1009,7 +995,6 @@ function subgui_configs_settings_mamedev() {
 ",[\ZrO\ZR|I] cheats			\Z2(default : disabled now),,iniConfig \" \" \"\" \"$configdir/mame/mame.ini\";iniSet \"cheatpath\"  \"$romdir/mame/cheat\";iniSet \"cheat\" \"1\";chown $user:$user \"$configdir/mame/mame.ini\";#refresh,subgui_configs_settings_mamedev,,,,show_message_mamedev \"This will enable cheats and add the cheatpath.\n\nCheats need to be in :\n$romdir/mame/cheat\n\nPS.:\nThere is an option in the script to download and enable the cheats.\nWhat you can do here is partly to get an idea of the overal settings and to manually disable it if needed.\","
 		)
 	fi
-	
     [[ $1 != refresh ]] && build_menu_mamedev
 }
 
@@ -1033,12 +1018,8 @@ function subgui_gamelists_mamedev() {
 ",►Create basic gamelists (image + marquee + video/still-video),,show_message_mamedev \"Experimental!\n\nNotice :\nAfter selecting a category a new gamelist.xml is created.\nYou will be presented a Yes/No question to delete or keep files !\n\nRemember for now :\nWorks only on category with drivers that use no media (carts or flops) !\n\nNewer categories are added from database 290.\nSo if one or more new categories are installed then switch to database 290 !\";show_message_yesno_mamedev \"Select YES if you want to make a gamelist and delete the old gamelist and media files from the selected category.\n(the gamelist.xml and the media folder is deleted !)\n\nSelect NO if you want to make a gamelist and re-use the media files from the selected category.\n(the gamelist.xml is overwritten and the media files are not deleted and when trying to download it will skip the download when the file exists)\" \"subgui_create_on_available_gamelists_mamedev real_basic_gamelist_creator_command_mamedev all fresh\" \"subgui_create_on_available_gamelists_mamedev real_basic_gamelist_creator_command_mamedev all\",,,,,show_message_mamedev \"Here you will be able to create gamelists using the mamedev database with media (depending on availability on the adb.arcadeitalia.net).\nThe gamelists are stored in :\n~$datadir/roms/<system>\nThis makes it easier to backup the gamelists together with your roms and it prevents from overwriting gamelist files in other locations.\nWhen selecting this option you can select a category to create a gamelist for.\nThe existing gamelist file is always overwritten !\","
 ",►Create basic gamelists (image + marquee + still-video),,show_message_mamedev \"Experimental!\n\nNotice :\nAfter selecting a category a new gamelist.xml is created.\nYou will be presented a Yes/No question to delete or keep files !\n\nRemember for now :\nWorks only on category with drivers that use no media (carts or flops) !\n\nNewer categories are added from database 290.\nSo if one or more new categories are installed then switch to database 290 !\";show_message_yesno_mamedev \"Select YES if you want to make a gamelist and delete the old gamelist and media files from the selected category.\n(the gamelist.xml and the media folder is deleted !)\n\nSelect NO if you want to make a gamelist and re-use the media files from the selected category.\n(the gamelist.xml is overwritten and the media files are not deleted and when trying to download it will skip the download when the file exists)\" \"subgui_create_on_available_gamelists_mamedev real_basic_gamelist_creator_command_mamedev images fresh\" \"subgui_create_on_available_gamelists_mamedev real_basic_gamelist_creator_command_mamedev images\",,,,,show_message_mamedev \"Here you will be able to create gamelists using the mamedev database with media (depending on availability on the adb.arcadeitalia.net).\nThe gamelists are stored in :\n~$datadir/roms/<system>\nThis makes it easier to backup the gamelists together with your roms and it prevents from overwriting gamelist files in other locations.\nWhen selecting this option you can select a category to create a gamelist for.\nThe existing gamelist file is always overwritten !\","
     )
-#",▼\ZrExperimental (has issue : no images downloaded)\ZR,,,"
-#",▼\ZrUse RetroScraper-remote by @kiro\ZR,,,"
-#",►Retroscrape/update gamelists with media per system,,subgui_create_on_available_gamelists_mamedev retroscraper_remote_command_mamedev,,,,,show_message_mamedev \"Here you will be able to retroscrape roms creating gamelists with videos and pictures depending on the database of retroscraper.\nThe gamelists are stored in :\n~$datadir/roms/<system>\nThis makes it easier to backup the gamelists together with your roms and it prevents from overwriting gamelist files in other locations.\nExisting gamelist files and media are removed before a new retroscrape !\n\nWhen selecting this option you can choose to retroscrape a system folder seperately.\","
     build_menu_mamedev
 }
-
 
 
 function subgui_gdrive_binaries_mamedev() {
@@ -1080,7 +1061,7 @@ Make sure you use the correct OS version :\n\
     [[ -n $4 ]] && while read gdrive_read;do csv+=("$gdrive_read");done < <(IFS=$'\n'; curl https://drive.google.com/embeddedfolderview?id=$4#list|sed 's/https/\nhttps/g;s/>/\//g;s/</\//g;s/\nhttps:\/\/drive-/https:\/\/drive-/g'|grep file|tac|while read line;do echo "\",$(echo $line|cut -d/ -f48),,install_binary_from_gdrive_mamedev $1 $2 $(echo $line|cut -d/ -f48) $(echo $line|cut -d/ -f6),\"";done)
 	#when 2 gdrives are used sorting must be done to get a good sorted list
 	if [[ -n $4 ]];then
-	IFS=$'\n' csv=($(sort -t"," -dr -k 2 --ignore-case <<<"${csv[*]}"));unset IFS
+		IFS=$'\n' csv=($(sort -t"," -dr -k 2 --ignore-case <<<"${csv[*]}"));unset IFS
 	fi
 	#the first value is reserved for the column descriptions, must be done after sorting
 	csv=(",,,," "${csv[@]}")
@@ -1136,11 +1117,10 @@ function subgui_systems_default_mamedev() {
     )
     build_menu_mamedev
 }
-#"$(if [[ $(arch) == arm* ]];then echo -e ,Display all upon descriptions,,create_systems_list_mamedev descriptions,,,,,show_message_mamedev \\\"Install one or more systems with default options\\\",;else echo -e ,\\Z1Displaying all upon descriptions not available on 64bit OS,,,,,,,,;fi)"
 
 
 function subgui_link_roms_mamedev() {
-#we can add up to 5 options per list to sort on
+	#we can add up to 5 options per list to sort on
     local csv=()
     csv=(
 ",menu_item,,to_do,"
@@ -1164,7 +1144,7 @@ function subgui_link_roms_mamedev() {
 
 
 function subgui_lists_mamedev() {
-#we can add up to 5 options per list to sort on
+	#we can add up to 5 options per list to sort on
     local csv=()
     csv=(
 ",menu_item,,to_do,"
@@ -1199,13 +1179,13 @@ function subgui_lists_mamedev() {
 
 
 function subgui_systems_extras_add_options_mamedev() {
-#With this csv style we can't use quotes or double quotes 
-#so if we want to add more options , slotdevices or extensions we replace spaces with *
-#later in the install_system_mamedev they are replaced again with spaces
-#we also need commas sometimes, here we use a # as a comma, in the install_system_mamedev they are replaced again with a comma
-#the options after install_system_mamedev are $1=system $2=RPsystemName $3=ExtraPredefinedOption(s) $4=mediadescription $5=media $6=extension(s)
-#example on how we can create the extensions options : $emudir/mame/mame -listmedia hbf700p|sed 's/  \./*\./g'
-#2nd example on how we can create the extensions options, in this case, with added slotdevice : $emudir/mame/mame -listmedia apple2ee -sl7 cffa2|sed 's/  \./*\./g'
+	#With this csv style we can't use quotes or double quotes 
+	#so if we want to add more options , slotdevices or extensions we replace spaces with *
+	#later in the install_system_mamedev they are replaced again with spaces
+	#we also need commas sometimes, here we use a # as a comma, in the install_system_mamedev they are replaced again with a comma
+	#the options after install_system_mamedev are $1=system $2=RPsystemName $3=ExtraPredefinedOption(s) $4=mediadescription $5=media $6=extension(s)
+	#example on how we can create the extensions options : $emudir/mame/mame -listmedia hbf700p|sed 's/  \./*\./g'
+	#2nd example on how we can create the extensions options, in this case, with added slotdevice : $emudir/mame/mame -listmedia apple2ee -sl7 cffa2|sed 's/  \./*\./g'
     local csv=()
     csv=(
 ",menu_item_handheld_description,to_do driver_used_for_installation,"
@@ -1224,7 +1204,7 @@ function subgui_systems_extras_add_options_mamedev() {
 ",Coco + ram + cassette support,@non-arcade,install_system_mamedev coco coco -ext*ram cassette cass .wav*.cas*.ccc*.rom -extra_ram,,,,,show_message_mamedev \"NO HELP\","
 ",Coco + ram + floppy 525dd support,@non-arcade,install_system_mamedev coco coco -ext*multi*-ext:multi:slot1*ram floppydisk1 flop1 .wav*.cas*.ccc*.rom*.mfi*.dfi*.hfe*.mfm*.td0*.imd*.d77*.d88*.1dd*.cqm*.cqi*.dsk*.dmk*.jvc*.vdk*.sdf*.os9*.vhd -extra_ram-525dd,,,,,show_message_mamedev \"NO HELP\","
 	)
-[[ $(expr $rp_module_version_database + 0) -lt 255 ]] && \
+	[[ $(expr $rp_module_version_database + 0) -lt 255 ]] && \
     csv+=(
 ",\Zr(<0255)\ZRCoco 2 + ram + cassette support,@non-arcade,install_system_mamedev coco2 coco2 -ext*ram cassette cass .wav*.cas*.ccc*.rom*.mfi*.dfi*.hfe*.mfm*.td0*.imd*.d77*.d88*.1dd*.cqm*.cqi*.dsk*.dmk*.jvc*.vdk*.sdf*.os9*.vhd -extra_ram,,,,,show_message_mamedev \"NO HELP\","
 ",\Zr(<0255)\ZRCoco 2 + ram + floppy 525dd support,@non-arcade,install_system_mamedev coco2 coco2 -ext*multi*-ext:multi:slot1*ram floppydisk1 flop1 .wav*.cas*.ccc*.rom*.mfi*.dfi*.hfe*.mfm*.td0*.imd*.d77*.d88*.1dd*.cqm*.cqi*.dsk*.dmk*.jvc*.vdk*.sdf*.os9*.vhd -extra_ram-525dd,,,,,show_message_mamedev \"NO HELP\","
@@ -1326,38 +1306,28 @@ $romdir/RetroPie/roms/m5/basici.zip\","
 ",TVC 64 + flop1 support,@non-arcade,install_system_mamedev tvc64 tvc64 -exp1*hbf floppydisk1 flop1 .rpk*.wav*.mfi*.dfi*.hfe*.mfm*.td0*.imd*.d77*.d88*.1dd*.cqm*.cqi*.dsk,,,,,show_message_mamedev \"NO HELP\","
 ",Videopac + voice (install videopac and patch default loaders),@non-arcade,install_system_mamedev videopac;sed -i \"s/ %B/ -cart1 voice -cart2 %B/g;s/\/ '%B/ -cart1 voice -cart2 '%B/g;s/cart %R/cart1 voice -cart2 %R/g\" $rootdir/configs/videopac/emulators.cfg,,,,,show_message_mamedev \"NO HELP\","
     )
-#preserved-test-lines
-#slot-devices are added but not recognised possibly because it boots with version 1 of the basic rom
-#",Coco with ram and floppy 525dd support,@non-arcade,install_system_mamedev coco coco -ext*multi*-ext:multi:slot1*ram floppydisk1 flop1 .mfi*.dfi*.hfe*.mfm*.td0*.imd*.d77*.d88*.1dd*.cqm*.cqi*.dsk*.dmk*.jvc*.vdk*.sdf*.os9,"
-#replaced exbasic with superxb (super extended basic)
-#",TI-99/4A Home Computer (32Kb) + exbasic + flop1,@non-arcade,install_system_mamedev ti99_4a ti99_4a exbasic*-ioport*peb*-ioport*peb*-ioport:peb:slot2*hfdc*-ioport:peb:slot3*32kmem* floppydisk1 flop1 .mfi*.dfi*.hfe*.mfm*.td0*.imd*.d77*.d88*.1dd*.cqm*.cqi*.dsk*,"
-#test Odyssey2 + voice : no sound 
-#",Odyssey2 + voice,@non-arcade,install_system_mamedev odyssey2 odyssey2 -cart1*voice cartslot2 cart2 .bin*.rom -cart1_voice,"
-#manual basename line that works but above lines create custom media loaders not basename loaders
-#$emudir/mame/mame -cfg_directory $rootdir/configs/odyssey2/mame -rompath $datadir/BIOS/mame\;$datadir/roms/odyssey2 -v -c -ui_active videopac -cart1 voice -cart2 beespl
-
     build_menu_mamedev
 }
 
 
 function subgui_systems_extras_add_autoboot_mamedev() {
-#With this csv style we can't use quotes or double quotes 
-#so if we want to add more options , slotdevices or extensions we replace spaces with *
-#later in the install_system_mamedev they are replaced again with spaces
-#we also need commas sometimes, here we use a # as a comma, in the install_system_mamedev they are replaced again with a comma
-#the options after install_system_mamedev are $1=system $2=RPsystemName $3=ExtraPredefinedOption(s) $4=mediadescription $5=media $6=extension(s)
-#example on how we can create the extensions options : $emudir/mame/mame -listmedia hbf700p|sed 's/  \./*\./g'
-#!!! make sure all available extensions of a system are added because extensions are overwritten when installing a system !!!
-# adding a newline can be done like this => \'\\\n\'
-# adding some special characters isn't always possible the normal way, escaping the char with multiple \
-# this is because the csv line is quoted with doublequotes and the delimiter  , is used to separate the "cells", also an extra * delimiter is used within "cells" to create a virtual 3D "worksheet"
-# adding special characters is possible using ascii hex-code 
-# check (https://www.cyberciti.biz/faq/unix-linux-sed-ascii-control-codes-nonprintable/)
-# or (https://www.freecodecamp.org/news/ascii-table-hex-to-ascii-value-character-code-chart-2/)
-# " => \'\\\x22\'
-# * => \'\\\x2a\'
-# , => \'\\\x2c\'
-# : => \'\\\x3a\'
+	#With this csv style we can't use quotes or double quotes 
+	#so if we want to add more options , slotdevices or extensions we replace spaces with *
+	#later in the install_system_mamedev they are replaced again with spaces
+	#we also need commas sometimes, here we use a # as a comma, in the install_system_mamedev they are replaced again with a comma
+	#the options after install_system_mamedev are $1=system $2=RPsystemName $3=ExtraPredefinedOption(s) $4=mediadescription $5=media $6=extension(s)
+	#example on how we can create the extensions options : $emudir/mame/mame -listmedia hbf700p|sed 's/  \./*\./g'
+	#!!! make sure all available extensions of a system are added because extensions are overwritten when installing a system !!!
+	# adding a newline can be done like this => \'\\\n\'
+	# adding some special characters isn't always possible the normal way, escaping the char with multiple \
+	# this is because the csv line is quoted with doublequotes and the delimiter  , is used to separate the "cells", also an extra * delimiter is used within "cells" to create a virtual 3D "worksheet"
+	# adding special characters is possible using ascii hex-code 
+	# check (https://www.cyberciti.biz/faq/unix-linux-sed-ascii-control-codes-nonprintable/)
+	# or (https://www.freecodecamp.org/news/ascii-table-hex-to-ascii-value-character-code-chart-2/)
+	# " => \'\\\x22\'
+	# * => \'\\\x2a\'
+	# , => \'\\\x2c\'
+	# : => \'\\\x3a\'
 
     local csv=()
     csv=(
@@ -1365,14 +1335,14 @@ function subgui_systems_extras_add_autoboot_mamedev() {
 ",Coco + ram + cassette + cload (auto) > run (manual),@non-arcade,install_system_mamedev coco coco -ext*ram*-autoboot_delay*2*-autoboot_command*cload\'\\\n\' cassette cass .wav*.cas*.ccc*.rom -extra_ram-autoboot-cload,"
 ",Coco + ram + cassette + cloadm:exec (auto),@non-arcade,install_system_mamedev coco coco -ext*ram*-autoboot_delay*2*-autoboot_command*cloadm:exec\'\\\n\' cassette cass .wav*.cas*.ccc*.rom -extra_ram-autoboot-cloadm:exec,"
 	)
-[[ $(expr $rp_module_version_database + 0) -gt 254 ]] && \
+	[[ $(expr $rp_module_version_database + 0) -gt 254 ]] && \
     csv+=(
 ",\Zr(>0254)\ZRCoco + floppy + os9 + dos (auto),@non-arcade,install_system_mamedev coco coco -autoboot_delay*2*-autoboot_command*dos\'\\\n\' floppydisk1 flop1 .wav*.cas*.ccc*.rom*.mfi*.dfi*.hfe*.mfm*.td0*.imd*.d77*.d88*.1dd*.cqm*.cqi*.dsk*.dmk*.jvc*.vdk*.sdf*.os9*.vhd*.bas*.bin -autoboot-dos-os9,"
 ",\Zr(>0254)\ZRCoco + floppy + load\"%BASENAME%\" + run (auto),@non-arcade,install_system_mamedev coco coco -autoboot_delay*2*-autoboot_command*load\'\\\x22\'%BASENAME%\'\\\x22\'\'\\\x2c\'r\'\\\n\' floppydisk1 flop1 .wav*.cas*.ccc*.rom*.mfi*.dfi*.hfe*.mfm*.td0*.imd*.d77*.d88*.1dd*.cqm*.cqi*.dsk*.dmk*.jvc*.vdk*.sdf*.os9*.vhd*.bas*.bin -autoboot-load_BASENAME_-run,"
 ",\Zr(>0254)\ZRCoco + floppy + run\"%BASENAME%\" (auto),@non-arcade,install_system_mamedev coco coco -autoboot_delay*2*-autoboot_command*run\'\\\x22\'%BASENAME%\'\\\x22\'\'\\\n\' floppydisk1 flop1 .wav*.cas*.ccc*.rom*.mfi*.dfi*.hfe*.mfm*.td0*.imd*.d77*.d88*.1dd*.cqm*.cqi*.dsk*.dmk*.jvc*.vdk*.sdf*.os9*.vhd*.bas*.bin -autoboot-run_BASENAME_,"
 ",\Zr(>0254)\ZRCoco + floppy + loadm\"%BASENAME%\":exec (auto),@non-arcade,install_system_mamedev coco coco -autoboot_delay*2*-autoboot_command*loadm\'\\\x22\'%BASENAME%\'\\\x22\':exec\'\\\n\' floppydisk1 flop1 .wav*.cas*.ccc*.rom*.mfi*.dfi*.hfe*.mfm*.td0*.imd*.d77*.d88*.1dd*.cqm*.cqi*.dsk*.dmk*.jvc*.vdk*.sdf*.os9*.vhd*.bas*.bin -autoboot-loadm_BASENAME_:exec,"
 	)
-[[ $(expr $rp_module_version_database + 0) -lt 255 ]] && \
+	[[ $(expr $rp_module_version_database + 0) -lt 255 ]] && \
     csv+=(
 ",\Zr(<0255)\ZRCoco 2 + ram + cassette + cload (auto) > run (manual),@non-arcade,install_system_mamedev coco2 coco2 -ext*ram*-autoboot_delay*2*-autoboot_command*cload\'\\\n\' cassette cass .wav*.cas*.ccc*.rom*.mfi*.dfi*.hfe*.mfm*.td0*.imd*.d77*.d88*.1dd*.cqm*.cqi*.dsk*.dmk*.jvc*.vdk*.sdf*.os9*.vhd*.bas*.bin -extra_ram -extra_ram-autoboot-cload,"
 ",\Zr(<0255)\ZRCoco 2 + ram + cassette + cloadm:exec (auto),@non-arcade,install_system_mamedev coco2 coco2 -ext*ram*-autoboot_delay*2*-autoboot_command*cloadm:exec\'\\\n\' cassette cass .wav*.cas*.ccc*.rom*.mfi*.dfi*.hfe*.mfm*.td0*.imd*.d77*.d88*.1dd*.cqm*.cqi*.dsk*.dmk*.jvc*.vdk*.sdf*.os9*.vhd*.bas*.bin -extra_ram -extra_ram-autoboot-cloadm:exec,"
@@ -1419,7 +1389,6 @@ function subgui_systems_extras_add_autoboot_mamedev() {
 ",Sam Coupe + floppy + boot (auto),@non-arcade,install_system_mamedev samcoupe samcoupe -autoboot_delay*2*-autoboot_command*\'\\\n\'boot\'\\\n\' floppydisk flop1  .wav*.tzx*.tap*.blk*.mfi*.dfi*.hfe*.mfm*.td0*.imd*.d77*.d88*.1dd*.cqm*.cqi*.dsk*.mgt -autoboot-boot,"
 ",Sinclair ZX-81 + cassette + load\"\" (auto) > play tape (+ run) (manual),@non-arcade,install_system_mamedev zx81 zx81 -autoboot_delay*3*-autoboot_command*j\'\\\x22\'\'\\\x22\'\'\\\n\' cassette cass  *.wav*.p*.81*.tzx -autoboot-load-manual_run,"
 	)
-	
     build_menu_mamedev
 }
 
@@ -1448,7 +1417,7 @@ function subgui_addons_mamedev () {
 ",,,,"
 
 ",►Download / install cheatfile (279),,download_extra_files_mamedev 17RwDMSkoinMM510YcWTf8o3xsknpn1fy cheat0279.zip cheat cheat.7z,,,,,show_message_mamedev \"When this script installs a system or category the cheat option in the configs will be turned on in lr-mess/lr-mame and MAME. Together with the cheat file you will be able to use cheats on certain games. The cheat file used can be found on http://www.mamecheat.co.uk\","
-",►Download / create gamelists,,subgui_gamelists_mamedev,,,,,show_message_mamedev \"Here you will find the options to use use RetroScraper and to install predefined gamelists with videos and pictures. These are created to have a good preview in emulationstation of the games you can select. In contrary to where the gamelists are normally stored these gamelists are stored in :\n~$datadir/roms/<system>\nThis makes it easier to backup the gamelists together with your roms and it prevents from overwriting gamelist files in other locations.\n\nWhen selecting this option all available gamelists with media are downloaded.\","
+",►Download / create gamelists,,subgui_gamelists_mamedev,,,,,show_message_mamedev \"Here you will find the options to create or install predefined gamelists with videos and pictures. These gamelists give a good preview in emulationstation of the games you can select. In contrary to where the gamelists normally are stored these gamelists are stored in :\n~$datadir/roms/<system>\nThis makes it easier to backup the gamelists together with your roms and it prevents from overwriting gamelist files in other locations.\","
 	)
 	[[ $(expr $rp_module_version_database + 0) -gt 273 ]] && \
     csv+=(
@@ -1463,7 +1432,6 @@ function subgui_addons_mamedev () {
 ",,,,"
 ",$([[ ! -f $scriptdir/scriptmodules/run_mess.sh ]] && echo Install @valerino run_mess.sh script \(the RusselB version\))$([[ -f $scriptdir/scriptmodules/run_mess.sh ]] && echo Remove the Valerino run_mess.sh script \(the RusselB version\)),,install_or_remove_run_mess_script_mamedev;#refresh,subgui_addons_mamedev,,,,show_message_mamedev \"This option can do two things.\nIf run_mess.sh is not detected then install it.\nIf run_mess.sh is detected then remove it.\n\nThis is the history of the run_mess.sh script :\n@Valerino started the topic 'new scriptmodules for proper lr-mess integration'. For that purpose he made the run_mess.sh script. He also made module-scripts for various lr-mess drivers so they could be installed seperately.
 The runcommands that were installed by the module-scripts used this run_mess.sh script. Basically collecting the options from the runcommand and then creating a .cmd file which can then be runned by lr-mess. Every time a .cmd file is made and removed afterwards when running a game.\n\nThis script used that same run_mess.sh to be backwards compatible with the work of @Valerino. Later @RusselB improved the script.\nHe said : My improvevement allowed me to specify custom configs including bezels and screen locations etc. per rom.\n\nBasically the run_mess.sh script isn't needed anymore as we now use direct runcommands.\nSo when this run_mess.sh script is not installed the runcommands are not created anymore\nIf however you still want to use the old runcommands using the run_mess.sh script then you can install it and the script will make these older runcommands when installing a driver.\","
-
     )
     [[ $1 != refresh ]] && build_menu_mamedev
 }
@@ -1474,7 +1442,7 @@ function subgui_databases_mamedev() {
     local database_read
     clear
     echo "reading the available databases"
-    #the first value is reserved for the column descriptions and empty in the array rp_module_database_versions
+    #the first value is reserved for the column descriptions (defined empty, in the array rp_module_database_versions, in the beginning of the script)
     while read database_read;do csv+=("$database_read");done < <(IFS=$'\n'; echo "${rp_module_database_versions[*]}"|while read line;do echo "\",Set database to $line,,rp_module_version_database=$line;read_data_mamedev;#break,\"";done;unset IFS)
     build_menu_mamedev
     #"break" after usage in function build_menu_mamedev
@@ -1497,20 +1465,20 @@ function direct_install_mamedev() {
 "Driver name:" 1 1 "" 1 22 76 100 \
 2>&1 >/dev/tty \
 )
-clear
-#get non-arcade/arcade status from database
-IFS=$'\n' driver_info=($(awk "/,$driver_name,/" <<<$(sed 's/" "/"\n"/g' <<<"${mamedev_csv[*]}")));unset IFS
-if [[ ${driver_info[@]} == *@non-arcad* ]]
-then system_type="non-arcade"
-else system_type="arcade"
-fi
-if [[ -z $driver_info || -z $driver_name ]];then
-	show_message_mamedev "The drivername you entered doesn't exist\n\nNot proceeding !"
-else
-	install_system_mamedev $driver_name "" "" "" "" "" "" "" "" "$system_type"
-fi
+	clear
+	#get non-arcade/arcade status from database
+	IFS=$'\n' driver_info=($(awk "/,$driver_name,/" <<<$(sed 's/" "/"\n"/g' <<<"${mamedev_csv[*]}")));unset IFS
+	if [[ ${driver_info[@]} == *@non-arcad* ]];then
+		system_type="non-arcade"
+	else
+		system_type="arcade"
+	fi
+	if [[ -z $driver_info || -z $driver_name ]];then
+		show_message_mamedev "The drivername you entered doesn't exist\n\nNot proceeding !"
+	else
+		install_system_mamedev $driver_name "" "" "" "" "" "" "" "" "$system_type"
+	fi
 }
-
 
 
 function subgui_download_gamelists_mamedev() {
@@ -1519,7 +1487,7 @@ function subgui_download_gamelists_mamedev() {
     local gamelists_read
     clear
     echo "reading the individual gamelist data"
-    #we need to add 'echo \",,,,\";', because otherwise the first value isn't displayed as it is reserved for the column descriptions
+    #the first value is reserved for the column descriptions
     while read gamelists_read;do gamelists_csv+=("$gamelists_read");done < <(echo \",,,,\";curl https://drive.google.com/embeddedfolderview?id=$1#list|sed 's/https/\nhttps/g'|grep folders|sed 's/folders\//folders\"/g;s/>/"/g;s/</"/g'|while read line;do echo "\",Download/update only for '$(echo $line|cut -d '"' -f50)',,download_from_google_drive_mamedev $(echo $line|cut -d '"' -f2) $datadir/roms/$(echo $line|cut -d '"' -f50),\"";done)
     IFS=$'\n' csv=($(sort -t"," -d -k 2 --ignore-case <<<"${gamelists_csv[*]}"));unset IFS
     build_menu_mamedev
@@ -1548,7 +1516,7 @@ function subgui_create_on_available_gamelists_mamedev() {
     local gamelists_read
     clear
     echo "reading the individual gamelist data"
-    #we need to add 'echo \",,,,\";', because otherwise the first value isn't displayed as it is reserved for the column descriptions
+    #the first value is reserved for the column descriptions
     while read gamelists_read;do gamelists_csv+=("$gamelists_read");done < <(echo \",,,,\";ls -w1 $datadir/roms|while read line;do echo "\",Create/update only for $([[ $line == *º ]]&&echo ' ')$(if [[ -f $datadir/roms/$line/gamelist.xml ]];then printf '%-20s\\\Z2(has gamelist)\n' $line;else printf '%-20s(no  gamelist)\n' $line;fi),,$1 $line $2 $3;#break,\"";done)
     IFS=$'\n' csv=($(sort -t"," -d -k 2 --ignore-case <<<"${gamelists_csv[*]}"));unset IFS
     build_menu_mamedev
@@ -1590,9 +1558,9 @@ _EOF_
 	for gamelist_folder in ${gamelist_folders[@]}
 	do
 		if [[ $gamelist_folder == "videos" ]];then
-		arcade_italia_link="https://adb.arcadeitalia.net/download_file.php?tipo=mame_current&codice=${shortname}&entity=shortplay&oper=streaming&filler=${shortname}.mp4"
+			arcade_italia_link="https://adb.arcadeitalia.net/download_file.php?tipo=mame_current&codice=${shortname}&entity=shortplay&oper=streaming&filler=${shortname}.mp4"
 		else
-		arcade_italia_link="https://adb.arcadeitalia.net/media/mame.current/${gamelist_folder}/${shortname}.png"
+			arcade_italia_link="https://adb.arcadeitalia.net/media/mame.current/${gamelist_folder}/${shortname}.png"
 		fi
 		#wget fix for video filename (adding --content-disposition) : https://www.junian.dev/blog/wget-correct-name/ 
 		#or use : curl --create-dirs -o "$datadir/roms/$1/media/emulationstation/${gamelist_folder}/${shortname}.mp4" "${arcade_italia_link}"
@@ -1606,7 +1574,7 @@ _EOF_
 	done
 	for gamelist_file_extension in ${gamelist_file_extensions[@]}
 	do
-	cat >> $datadir/roms/$1/gamelist.xml << _EOF_
+		cat >> $datadir/roms/$1/gamelist.xml << _EOF_
 	<game>
 		<path>./${shortname}.${gamelist_file_extension}</path>
 		<name>${longname}</name>
@@ -1622,47 +1590,6 @@ _EOF_
 _EOF_
 	chown $user:$user "$datadir/roms/$1/gamelist.xml"
 	chown -R $user:$user "$datadir/roms/$1/media"
-}
-
-
-function retroscraper_remote_command_mamedev() {
-    rm $datadir/roms/$1/gamelist.xml 2> /dev/null
-    rm -r $datadir/roms/$1/media/emulationstation 2> /dev/null
-    #use python_virtual_environment
-    su $user -c "curl https://raw.githubusercontent.com/zayamatias/retroscraper-remote/main/retroscraper.py|/home/$user/.local/bin/uv run --python 3.11 --with 'httpimport==1.1.0' --with 'requests==2.21.0' --with 'wheel==0.40.0' --with 'setuptools==67.7.2' --with 'googletrans==4.0.0rc1' --with 'Pillow==9.2.0' - --recursive --relativepaths --mediadir media/emulationstation --nobackup --systems $1"
-    #"break" after usage in function build_menu_mamedev so a good list of present gamelists can be viewed
-}
-
-
-function retroscraper_remote_depends_mamedev () {
-    #install python modules when not detected as installed
-    #retroscraper-remote needs httpimport as extra library so some dependancies can be used "online"
-    #https://stackoverflow.com/questions/23106621/replace-multiple-consecutive-white-spaces-with-one-comma-in-unix
-    #looking for latest versions then do : python3 -m pip list --outdated  
-    #looking for installed packages and versions then do : python3 -m pip list 
-    #if above doesn't work then go into the python virtual environment that is installed after trying retroscraper from the script and do the following :
-    #cd /opt/retropie/python_virtual_environment/bin
-    #/python -m pip list --outdated
-    #(updating httpimport==1.4.0 did not work)
-    local pip_list_output
-    local retroscraper_remote_module
-    local retroscraper_remote_modules=()
-    retroscraper_remote_modules=(
-    wheel==0.44.0
-    setuptools==75.1.0
-    googletrans==4.0.0rc1
-    Pillow==10.4.0
-    requests==2.32.3
-    httpimport==1.3.1
-    )
-    #use a virtual python environment
-    #https://stackoverflow.com/questions/60868540/cant-install-python-modules-with-pip-on-manjaro-linux
-    [[ ! -d $rootdir/python_virtual_environment ]] && python3 -m venv $rootdir/python_virtual_environment
-    [[ $($rootdir/python_virtual_environment/bin/python3 -m pip list 2>&1) == *"new release of pip"* ]] && $rootdir/python_virtual_environment/bin/python3 -m pip install --upgrade pip
-    pip_list_output=$(su $user -c "$rootdir/python_virtual_environment/bin/python3 -m pip list|sed 's/ \{1,\}/==/g'")
-    for retroscraper_remote_module in ${retroscraper_remote_modules[@]};do 
-    [[ $pip_list_output != *$retroscraper_remote_module* ]] && $rootdir/python_virtual_environment/bin/python3 -m pip install $retroscraper_remote_module
-    done
 }
 
 
@@ -1708,7 +1635,7 @@ function subgui_archive_downloads_mamedev() {
     #remember : the first search option will be changed by the script to get search options beginning with, if you want a global search  do something like this : '//&&/hdv/'
     #rompack name, file extension and rompack link 
     #local rompack_link_info=( "mame-0.231-merged" ".7z" "mame-0.231-merged" )
-#has been locked#    local rompack_link_info=( "mame-merged \Zb\Z2NEWEST" ".zip" "mame-merged/mame-merged" )
+	#has been locked#    local rompack_link_info=( "mame-merged \Zb\Z2NEWEST" ".zip" "mame-merged/mame-merged" )
     local rompack_link_info=( "mame-0.264-roms-non-merged" ".zip" "\"mame-0.264-roms-non-merged/MAME 0.264 ROMs (non-merged)\"" )
     local csv=()
 	local rarfile 
@@ -1820,12 +1747,6 @@ function subgui_archive_downloads_mamedev() {
 ",$(echo $romdir|cut -d/ -f4)/roms/x68000     < SharpX68000RomCollectionByGhostware,,subform_archive_download_mamedev '//&&/zip/' $datadir/roms/x68000 SharpX68000RomCollectionByGhostware download archive.??? '' y,,,,,show_message_mamedev \"NO HELP\","
     )
     build_menu_mamedev
-#single files, need different approach
-#",$(echo $romdir|cut -d/ -f4)/roms/amiga/cdtv < Amiga_CDTV_TOSEC_2009_04_18,,subform_archive_download_mamedev '//&&/zip/' $datadir/roms/amiga Amiga_CDTV_TOSEC_2009_04_18 download archive.???,,,,,show_message_mamedev \NO HELP\,"
-#",$(echo $romdir|cut -d/ -f4)/roms/fmtowns    < Neo_Kobe_Fujitsu_FM_Towns_2016-02-25,,subform_archive_download_mamedev '//&&/zip/' $datadir/roms/fmtowns Neo_Kobe_Fujitsu_FM_Towns_2016-02-25 download archive.???,,,,,show_message_mamedev \NO HELP\,"
-#",$(echo $romdir|cut -d/ -f4)/roms/x1         < Neo_Kobe_Sharp_X1_2016-02-25,,subform_archive_download_mamedev '//&&/zip/' $datadir/roms/x1 Neo_Kobe_Sharp_X1_2016-02-25 download archive.???,,,,,show_message_mamedev \NO HELP\,"
-#",$(echo $romdir|cut -d/ -f4)/roms/x1         < Sharp_X1_TOSEC_2012_04_23,,subform_archive_download_mamedev '//&&/zip/' $datadir/roms/x1 Sharp_X1_TOSEC_2012_04_23 download archive.???,,,,,show_message_mamedev \NO HELP\,"
-
 }
 
 
@@ -1861,70 +1782,68 @@ dialog \
 "" 9 1 "" 6 0 0 0 \
 2>&1 >/dev/tty \
 )
-#maximum charachters that can be displayed in empty line (6-9) " ===================================================================== "
-
+	#maximum charachters that can be displayed in empty line (6-9) " ===================================================================== "
     website_url=$(echo "$manual_input" | sed -n 1p)
     website_path=$(echo "$manual_input" | sed -n 2p)
     rompack_name=$(echo "$manual_input" | sed -n 3p)
     destination_path=$(echo "$manual_input" | sed -n 4p)
-#issue with using cmd : search_pattern=$(echo "$manual_input" | sed -n 5p)
-#if search_pattern is also in the destination_path then all items of the csv are displayed !!!
-#to fix this you had to add a space to get a correct search ( / adam/ that way there isn't a match with /roms/adam !!! )
-#in next command we add a space to fix this issue
+	#issue with using cmd : search_pattern=$(echo "$manual_input" | sed -n 5p)
+	#if search_pattern is also in the destination_path then all items of the csv are displayed !!!
+	#to fix this you had to add a space to get a correct search ( / adam/ that way there isn't a match with /roms/adam !!! )
+	#in next command we add a space to fix this issue
     search_pattern=$(echo "$manual_input" | sed -n 5p | sed 's/\//\/ /')
     get_all=$(echo "$manual_input" | sed -n 6p)
     decode_html=$(echo "$manual_input" | sed -n 7p)
     
     clear
     if [[ $(echo $website_url|sha1sum) == 241013beb0faf19bf5d76d74507eadecdf45348e* ]];then
-	#remove the earlier added space in the search pattern with sed as it needs the regular pattern here
-	[[ $get_all == y ]] && curl https://$website_url/$website_path/$rompack_name|grep "<td><a href="|cut -d '"' -f2|grep -v "/"|grep -v "ia_thumb"|awk "$(echo $search_pattern|sed 's/ //g')"|while read line;do if [[ ! -f "$destination_path/$(echo -e $(echo $line|sed -r 's/%([[:xdigit:]]{2})/\\x\1/g'))" ]];then download_file_mamedev $line "$website_url/$website_path/$rompack_name" $destination_path;sleep 0.5;else echo $(echo -e $(echo $line|sed -r 's/%([[:xdigit:]]{2})/\\x\1/g')) [Exists, probably OK];sleep 0.02;fi;done
-	if [[ $get_all == c ]];then
-	    if [[ ! -f "$destination_path/$rompack_name.zip" ]];then
-	    echo "getting your desired file : $rompack_name.zip"
-	    wget -q --show-progress --progress=bar:force -t2 -c -w1 -O "$destination_path/$rompack_name.zip" $([[ $2 != http* ]] && echo https://)$website_url/compress/$rompack_name 2>&1
-	    [[ $destination_path == */BIOS/* ]] && chown -R $user:$user "$(echo $destination_path|cut -d/ -f-5)"
-	    [[ $destination_path == */downloads/* ]] && chown -R $user:$user "$(echo $destination_path|cut -d/ -f-5)"
-	    [[ $destination_path == */roms/* ]] && chown -R $user:$user "$(echo $destination_path|cut -d/ -f-6)"
-	else
-	    echo $destination_path/$rompack_name.zip [Exists, probably OK]
-	    sleep 5	
-	fi
-	fi
-	if [[ $get_all != y ]] && [[ $get_all != c ]];then
-	    echo "reading the website data"
-	    #sed is used to convert html url encoding to utf-8 encoding, for example %20 becomes /x20
-	    #this way you don't have to make a large list with codes in sed in order to convert them all
-	    #using "echo -e" makes it possible to convert the backslash codes into readable characters again
-	    #however, the comma is a problem when using a CSV and using a comma as separator 
-	    #then the comma in the name will break the table
-	    #therefor, the code for comma %2C is converted to a different comma code %E2%80%9A
-	    #that way a proper lookalike name is presented when showing the list in dialog box
-		if [[ $decode_html == y ]];then
-			echo -e "\nhtml encoding will be replaced, will take a bit more time\n"
-			while read download_read;do download_csv+=("$download_read");done < <(curl https://$website_url/$website_path/$rompack_name|grep "<td><a href="|cut -d '"' -f2|grep -v "/"|grep -v "ia_thumb"|while read line;do echo "\",Get '$(echo -e $(echo $line|sed -r 's/%2C/%E2%80%9A/g;s/%([[:xdigit:]]{2})/\\x\1/g'))',,download_file_mamedev $line \"$website_url/$website_path/$rompack_name\" $destination_path,\"";done)
-		else
-			while read download_read;do download_csv+=("$download_read");done < <(curl https://$website_url/$website_path/$rompack_name|grep "<td><a href="|cut -d '"' -f2|grep -v "/"|grep -v "ia_thumb"|while read line;do echo "\",Get '$line',,download_file_mamedev $line \"$website_url/$website_path/$rompack_name\" $destination_path,\"";done)
+		#remove the earlier added space in the search pattern with sed as it needs the regular pattern here
+		[[ $get_all == y ]] && curl https://$website_url/$website_path/$rompack_name|grep "<td><a href="|cut -d '"' -f2|grep -v "/"|grep -v "ia_thumb"|awk "$(echo $search_pattern|sed 's/ //g')"|while read line;do if [[ ! -f "$destination_path/$(echo -e $(echo $line|sed -r 's/%([[:xdigit:]]{2})/\\x\1/g'))" ]];then download_file_mamedev $line "$website_url/$website_path/$rompack_name" $destination_path;sleep 0.5;else echo $(echo -e $(echo $line|sed -r 's/%([[:xdigit:]]{2})/\\x\1/g')) [Exists, probably OK];sleep 0.02;fi;done
+			if [[ $get_all == c ]];then
+				if [[ ! -f "$destination_path/$rompack_name.zip" ]];then
+					echo "getting your desired file : $rompack_name.zip"
+					wget -q --show-progress --progress=bar:force -t2 -c -w1 -O "$destination_path/$rompack_name.zip" $([[ $2 != http* ]] && echo https://)$website_url/compress/$rompack_name 2>&1
+					[[ $destination_path == */BIOS/* ]] && chown -R $user:$user "$(echo $destination_path|cut -d/ -f-5)"
+					[[ $destination_path == */downloads/* ]] && chown -R $user:$user "$(echo $destination_path|cut -d/ -f-5)"
+					[[ $destination_path == */roms/* ]] && chown -R $user:$user "$(echo $destination_path|cut -d/ -f-6)"
+				else
+					echo $destination_path/$rompack_name.zip [Exists, probably OK]
+					sleep 5	
+				fi
+			fi
+		if [[ $get_all != y ]] && [[ $get_all != c ]];then
+			echo "reading the website data"
+			#sed is used to convert html url encoding to utf-8 encoding, for example %20 becomes /x20
+			#this way you don't have to make a large list with codes in sed in order to convert them all
+			#using "echo -e" makes it possible to convert the backslash codes into readable characters again
+			#however, the comma is a problem when using a CSV and using a comma as separator 
+			#then the comma in the name will break the table
+			#therefor, the code for comma %2C is converted to a different comma code %E2%80%9A
+			#that way a proper lookalike name is presented when showing the list in dialog box
+			if [[ $decode_html == y ]];then
+				echo -e "\nhtml encoding will be replaced, will take a bit more time\n"
+				while read download_read;do download_csv+=("$download_read");done < <(curl https://$website_url/$website_path/$rompack_name|grep "<td><a href="|cut -d '"' -f2|grep -v "/"|grep -v "ia_thumb"|while read line;do echo "\",Get '$(echo -e $(echo $line|sed -r 's/%2C/%E2%80%9A/g;s/%([[:xdigit:]]{2})/\\x\1/g'))',,download_file_mamedev $line \"$website_url/$website_path/$rompack_name\" $destination_path,\"";done)
+			else
+				while read download_read;do download_csv+=("$download_read");done < <(curl https://$website_url/$website_path/$rompack_name|grep "<td><a href="|cut -d '"' -f2|grep -v "/"|grep -v "ia_thumb"|while read line;do echo "\",Get '$line',,download_file_mamedev $line \"$website_url/$website_path/$rompack_name\" $destination_path,\"";done)
+			fi
+			IFS=$'\n' csv=($(sort -t"," -k 2 --ignore-case <<<$(awk $search_pattern<<<"${download_csv[*]}")));unset IFS
+			#we need to add '",,,,"', because otherwise the first value isn't displayed as it is reserved for the column descriptions
+			csv=( ",,,," "${csv[@]}" )
+			[[ ${!csv[@]} == 0 ]] && csv=( ",,,," ",no search results found, try again,,," )
+			build_menu_mamedev
 		fi
-	    IFS=$'\n' csv=($(sort -t"," -k 2 --ignore-case <<<$(awk $search_pattern<<<"${download_csv[*]}")));unset IFS
-	    #we need to add '",,,,"', because otherwise the first value isn't displayed as it is reserved for the column descriptions
-	    csv=( ",,,," "${csv[@]}" )
-	    [[ ${!csv[@]} == 0 ]] && csv=( ",,,," ",no search results found, try again,,," )
-
-	    build_menu_mamedev
-	fi
     else
-    echo "-->> ERROR : WRONG INPUT : TRY AGAIN !"
-    echo "Waiting for 5 seconds..."
-    echo "If more commands exist they are executed now."
-    echo "Atfer that it will go back to the menu."
-    sleep 5
+		echo "-->> ERROR : WRONG INPUT : TRY AGAIN !"
+		echo "Waiting for 5 seconds..."
+		echo "If more commands exist they are executed now."
+		echo "Atfer that it will go back to the menu."
+		sleep 5
     fi
 }
 
 
-#in this function all vars are with curly brackets
 function subformgui_categories_automated_mamedev() {    
+	#in this function all vars are with curly brackets
 	#make sure that there is a database file
     [[ ! -f ${emudir}/mame/mame${rp_module_version_database}_systems_sorted_info ]] && curl -s https://raw.githubusercontent.com/FollyMaddy/RetroPie-Share/main/00-databases-00/mame/mame${rp_module_version_database}_systems_sorted_info -o ${emudir}/mame/mame${rp_module_version_database}_systems_sorted_info
 	if [[ $1 == *download* ]];then
@@ -1945,9 +1864,9 @@ function subformgui_categories_automated_mamedev() {
     
     #local category_compatible
     if [[ $6 != refresh ]];then
-    echo -e "Hold 'LeftShift' to show message and form.\n(try tapping 'LeftShift' if holding doesn't work !)" ;sleep 2
-    if [[ $(timeout 1 $([[ $scriptdir == *ArchyPie* ]] && echo tiny)xxd -a -c 1 $(ls /dev/input/by-path/*kbd|head -n 1)|grep ": 2a") == *2a* ]];then
-	show_message_mamedev "\
+		echo -e "Hold 'LeftShift' to show message and form.\n(try tapping 'LeftShift' if holding doesn't work !)" ;sleep 2
+		if [[ $(timeout 1 $([[ $scriptdir == *ArchyPie* ]] && echo tiny)xxd -a -c 1 $(ls /dev/input/by-path/*kbd|head -n 1)|grep ": 2a") == *2a* ]];then
+			show_message_mamedev "\
 After selecting ok a form will be presented with filter variables.\n\
 You can see the earlier predefined variables.\n\
 The variables can be changed if needed.\n\
@@ -2001,11 +1920,11 @@ dialog \
     filter2=$(echo "$manual_input" | sed -n 4p)
     detect_clone_save=$(echo "$manual_input" | sed -n 5p) 
 
-fi
-fi
+		fi
+	fi
     clear
     echo "reading the available databases"
-    #the first value is reserved for the column descriptions and empty in the array rp_module_database_versions
+    #the first value is reserved for the column descriptions
     csv=( "\",,,,\"" )
 	#we want backwards compatibility to the old manual install lines
 	#therfor we need to keep some @<tags>@/catergories in the database that aren't particurly usefull for the automatic lists
@@ -2027,7 +1946,8 @@ fi
 		IFS=$'\n'
 		cat $emudir/mame/mame${rp_module_version_database}_systems_sorted_info|awk "${filter1}"|sed 's/Driver.*: //;s/@/\n/g'|sort|uniq|awk "${filter2}"|while read line
 		do
-			[[ -n ${line} ]] && if [[ ${filter1} == *@90º@* ]];then
+			#[[ -n ${line} ]] && if [[ ${filter1} == *@90º@* ]];then
+			if [[ -n ${line} ]] && [[ ${filter1} == *@90º@* ]];then
 				echo "\",$(if [[ -f $configdir/${line}90º/emulators.cfg ]];then echo 'Update ';else echo 'Install';fi ) Category => ${line}90º,${driver_type},create_00index_file_mamedev '${filter1} && /@${line}@/ && /@90º@/' ${datadir}/roms/${line}90º;install_system_mamedev ${line}90º ${line}90º '' '' 'none' '';#refresh,subformgui_categories_automated_mamedev \"$1\" \"$2\" \"$3\" \"$4\" \"$5\" \"refresh\",,,,show_message_mamedev \"This help page gives more info on force installing the arcade category :\\\n${line}90º\\\n\\\nIt will :\\\n- create the rom folder\\\n- associate the mame and lr-mess/lr-mame loaders for this folder or category\\\n- create a rom index file (0 rom-index 0) inside the specific rom folder\\\n\\\nThe created index file contains the list of games.\"";\
 			else
 				echo "\",$(if [[ -f $configdir/${line}/emulators.cfg ]];then echo 'Update ';else echo 'Install';fi ) Category => ${line},${driver_type},create_00index_file_mamedev '${filter1} && /@${line}@/' ${datadir}/roms/${line};install_system_mamedev ${line} ${line} '' '' 'none' '';#refresh,subformgui_categories_automated_mamedev \"$1\" \"$2\" \"$3\" \"$4\" \"$5\" \"refresh\",,,,show_message_mamedev \"This help page gives more info on force installing the arcade category :\\\n${line}\\\n\\\nIt will :\\\n- create the rom folder\\\n- associate the mame and lr-mess/lr-mame loaders for this folder or category\\\n- create a rom index file (0 rom-index 0) inside the specific rom folder\\\n\\\nThe created index file contains the list of games.\"";\
@@ -2054,7 +1974,7 @@ fi
 
 
 function subgui_installs_mamedev() {
-#for dialog colours see "man dialog"
+	#for dialog colours see "man dialog"
 	local csv=()
 	csv=(
 ",,,,,,,,,"
@@ -2068,21 +1988,21 @@ function subgui_installs_mamedev() {
 ",\Z5►Show and install lr-mame from gdrive binary list,,if [[ -d $rootdir/emulators/retroarch ]];then subgui_gdrive_binaries_mamedev lr-mame $rootdir/libretrocores 19LXbhNDSGTaf5OxYQo3ILuUp0UShPMbx;else show_message_mamedev \"Please install RetroArch first !\";fi,"
 ",,,,"
 	)
-sleep 0.1
-[[ $(timeout 1 $([[ $scriptdir == *ArchyPie* ]] && echo tiny)xxd -a -c 1 $(ls /dev/input/by-path/*kbd|head -n 1)|grep ": 2a") == *2a* ]] &&\
-if [[ $(curl https://stickfreaks.com/mame/ 2>&1) == *problem* ]];then
-	csv+=(
+	sleep 0.1
+	[[ $(timeout 1 $([[ $scriptdir == *ArchyPie* ]] && echo tiny)xxd -a -c 1 $(ls /dev/input/by-path/*kbd|head -n 1)|grep ": 2a") == *2a* ]] &&\
+	if [[ $(curl https://stickfreaks.com/mame/ 2>&1) == *problem* ]];then
+		csv+=(
 ",\Z1►Insecure:\Z4►Show and install mame from stickfreaks binary list,,show_message_yesno_mamedev \"Curl says that the connection to the strickfreaks website is insecure.\nProceed at your own risk or cancel by selecting no.\" \"subgui_stickfreaks_binaries_mamedev --insecure\","
 ",,,,"
 	)
-else
-	csv+=(
+	else
+		csv+=(
 ",\Z4►Show and install mame from stickfreaks binary list,,subgui_stickfreaks_binaries_mamedev,"
 ",,,,"
 	)
-fi
-sleep 0.1
-[[ $(timeout 1 $([[ $scriptdir == *ArchyPie* ]] && echo tiny)xxd -a -c 1 $(ls /dev/input/by-path/*kbd|head -n 1)|grep ": 2a") == *2a* ]] &&\
+	fi
+	sleep 0.1
+	[[ $(timeout 1 $([[ $scriptdir == *ArchyPie* ]] && echo tiny)xxd -a -c 1 $(ls /dev/input/by-path/*kbd|head -n 1)|grep ": 2a") == *2a* ]] &&\
 	csv+=(
 ",▼\Zr\Z1Experimental : Usage is for your own risk !,,,"
 ",\Z3Install rpi1/0 mame0255 binary (only : channelf apfm1000 ...),,\
@@ -2135,8 +2055,6 @@ This installs a Debian 10 / gcc8.3 / patched source binary.\n\
 The binary should work on Debian 10/11 based OSes.\n\
 \","
 	)
-#",▼\Zr\Z1Usage is for your own risk and very experimental !,,,"
-#",\Z1Install lr-mame/lr-mess binary (x86/x86_64) <= libretro buildbot,,install-lr-mame-for-x86-or-x86_64,"
 	build_menu_mamedev
 }
 
@@ -2180,38 +2098,36 @@ dialog \
 
     clear
     if [[ $(echo $website_url|sha1sum) == 241013beb0faf19bf5d76d74507eadecdf45348e* ]];then
-    mkdir -p $destination_path
-    IFS=$'\n' restricted_download_csv=($(cut -d "," -f 2 <<<$(awk $search_input<<<$(sed 's/\" \"/\"\n\"/g'<<<"${mamedev_csv[*]}"))));unset IFS
-    for rd in ${!restricted_download_csv[@]};do 
-    #echo ${restricted_download_csv[$rd]}
-    #sleep 0.3
-    #show a wget progress bar => https://stackoverflow.com/questions/4686464/how-can-i-show-the-wget-progress-bar-only
-
-    echo "busy with ${restricted_download_csv[$rd]}$file_extension"
-    #display onle the lines "Nothing to do." "Not Found." and progress "%" using awk or grep command : awk '/do\./||/Found\./||/\%/' : grep -E 'do\.|Found\.|%'
-	if [[ $detect_clone_save == yes ]];then
-		if [[ -n $($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6) ]];then
-		echo clone detected, saving $($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6)$file_extension as ${restricted_download_csv[$rd]}$file_extension
-		wget -q --show-progress --progress=bar:force -t2 -c -w1 "https://$website_url/$website_path/$rompack_name/$($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6)$file_extension" -O $destination_path/${restricted_download_csv[$rd]}$file_extension 2>&1
-		else 
-		wget -q --show-progress --progress=bar:force -t2 -c -w1 -P $destination_path "https://$website_url/$website_path/$rompack_name/${restricted_download_csv[$rd]}$file_extension" 2>&1
-		fi
-	else 
-	wget -q --show-progress --progress=bar:force -t2 -c -w1 -P $destination_path "https://$website_url/$website_path/$rompack_name/${restricted_download_csv[$rd]}$file_extension" 2>&1
-	fi
-    done
+		mkdir -p $destination_path
+		IFS=$'\n' restricted_download_csv=($(cut -d "," -f 2 <<<$(awk $search_input<<<$(sed 's/\" \"/\"\n\"/g'<<<"${mamedev_csv[*]}"))));unset IFS
+		for rd in ${!restricted_download_csv[@]};do 
+			#echo ${restricted_download_csv[$rd]}
+			#sleep 0.3
+			#show a wget progress bar => https://stackoverflow.com/questions/4686464/how-can-i-show-the-wget-progress-bar-only
+			echo "busy with ${restricted_download_csv[$rd]}$file_extension"
+			#display onle the lines "Nothing to do." "Not Found." and progress "%" using awk or grep command : awk '/do\./||/Found\./||/\%/' : grep -E 'do\.|Found\.|%'
+			if [[ $detect_clone_save == yes ]];then
+				if [[ -n $($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6) ]];then
+					echo clone detected, saving $($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6)$file_extension as ${restricted_download_csv[$rd]}$file_extension
+					wget -q --show-progress --progress=bar:force -t2 -c -w1 "https://$website_url/$website_path/$rompack_name/$($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6)$file_extension" -O $destination_path/${restricted_download_csv[$rd]}$file_extension 2>&1
+				else 
+					wget -q --show-progress --progress=bar:force -t2 -c -w1 -P $destination_path "https://$website_url/$website_path/$rompack_name/${restricted_download_csv[$rd]}$file_extension" 2>&1
+				fi
+			else 
+			wget -q --show-progress --progress=bar:force -t2 -c -w1 -P $destination_path "https://$website_url/$website_path/$rompack_name/${restricted_download_csv[$rd]}$file_extension" 2>&1
+			fi
+		done
     elif [[ $(echo $website_url|sha1sum) == 91f709654529299145e9eb45ce1ca1e19796edab* ]];then
-	wget -q --show-progress --progress=bar:force -t2 -c -w1 -r -l 1 https://$website_url/$website_path -P $destination_path/$rompack_name -A $file_extension -nd 2>&1
+		wget -q --show-progress --progress=bar:force -t2 -c -w1 -r -l 1 https://$website_url/$website_path -P $destination_path/$rompack_name -A $file_extension -nd 2>&1
     elif [[ $(echo $website_url|sha1sum) == fb27d3b6f43131c8ad026024f3e3b9cfa0686d4c* ]];then
-	download_from_github_mamedev $website_path $destination_path $file_extension
+		download_from_github_mamedev $website_path $destination_path $file_extension
     else 
-    echo "-->> ERROR : WRONG INPUT : TRY AGAIN !"
-    echo "Waiting for 5 seconds..."
-    echo "If more commands exist they are executed now."
-    echo "Atfer that it will go back to the menu."
-    sleep 5
+		echo "-->> ERROR : WRONG INPUT : TRY AGAIN !"
+		echo "Waiting for 5 seconds..."
+		echo "If more commands exist they are executed now."
+		echo "Atfer that it will go back to the menu."
+		sleep 5
     fi
-    #chown commands are in the lines for : all_in1 - tigerrz
     [[ $destination_path == */BIOS/* ]] && chown -R $user:$user "$(echo $destination_path|cut -d/ -f-5)"
 	[[ $destination_path == */downloads/* ]] && chown -R $user:$user "$(echo $destination_path|cut -d/ -f-5)"
 	[[ $destination_path == */roms/* ]] && chown -R $user:$user "$(echo $destination_path|cut -d/ -f-6)"
@@ -2229,7 +2145,7 @@ function subform_link_multi_downloads_mamedev() {
 		#remove @no_media@ from filter to link most jakks roms as many seem to have media but are also in the jakks list
 		#not removing would mean that only a few roms are linked
 		local search_input="$(echo $1|sed 's/ && \/@no_media@\///g')"
-		else
+	else
 		local search_input="$1"
     fi
     local manual_input=""
@@ -2263,25 +2179,23 @@ dialog \
 	#echo ${restricted_download_csv[1]}
 	#read
     for rd in ${!restricted_download_csv[@]};do 
-    echo "busy with ${restricted_download_csv[$rd]}$file_extension"
-    #display onle the lines "Nothing to do." "Not Found." and progress "%" using awk or grep command : awk '/do\./||/Found\./||/\%/' : grep -E 'do\.|Found\.|%'
-	if [[ $detect_clone_save == yes ]];then
-		if [[ -n $($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6) ]];then
-		echo clone detected, saving $($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6)$file_extension as ${restricted_download_csv[$rd]}$file_extension
-		[[ -f "$rompack_path/$($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6)$file_extension" ]] && \
-		ln -f "$rompack_path/$($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6)$file_extension" "$destination_path/${restricted_download_csv[$rd]}$file_extension" 2>&1
+		echo "busy with ${restricted_download_csv[$rd]}$file_extension"
+		#display onle the lines "Nothing to do." "Not Found." and progress "%" using awk or grep command : awk '/do\./||/Found\./||/\%/' : grep -E 'do\.|Found\.|%'
+		if [[ $detect_clone_save == yes ]];then
+			if [[ -n $($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6) ]];then
+				echo clone detected, saving $($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6)$file_extension as ${restricted_download_csv[$rd]}$file_extension
+				[[ -f "$rompack_path/$($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6)$file_extension" ]] && \
+				ln -f "$rompack_path/$($emudir/mame/mame -listxml "${restricted_download_csv[$rd]}"|awk '/cloneof=/'|cut -d\" -f6)$file_extension" "$destination_path/${restricted_download_csv[$rd]}$file_extension" 2>&1
+			else
+				echo "$rompack_path/${restricted_download_csv[$rd]}$file_extension"
+				[[ -f "$rompack_path/${restricted_download_csv[$rd]}$file_extension" ]] && \
+				ln -f "$rompack_path/${restricted_download_csv[$rd]}$file_extension" "$destination_path/${restricted_download_csv[$rd]}$file_extension" 2>&1
+			fi
 		else
-		echo "$rompack_path/${restricted_download_csv[$rd]}$file_extension"
-		[[ -f "$rompack_path/${restricted_download_csv[$rd]}$file_extension" ]] && \
-		ln -f "$rompack_path/${restricted_download_csv[$rd]}$file_extension" "$destination_path/${restricted_download_csv[$rd]}$file_extension" 2>&1
+			[[ -f "$rompack_path/${restricted_download_csv[$rd]}$file_extension" ]] && \
+			ln -f "$rompack_path/${restricted_download_csv[$rd]}$file_extension" "$destination_path/${restricted_download_csv[$rd]}$file_extension" 2>&1
 		fi
-	else
-		[[ -f "$rompack_path/${restricted_download_csv[$rd]}$file_extension" ]] && \
-		ln -f "$rompack_path/${restricted_download_csv[$rd]}$file_extension" "$destination_path/${restricted_download_csv[$rd]}$file_extension" 2>&1
-	fi
     done
-
-    #chown commands are in the lines for : all_in1 - tigerrz
     [[ $destination_path == */BIOS/* ]] && chown -R $user:$user "$(echo $destination_path|cut -d/ -f-5)"
 	[[ $destination_path == */downloads/* ]] && chown -R $user:$user "$(echo $destination_path|cut -d/ -f-5)"
 	[[ $destination_path == */roms/* ]] && chown -R $user:$user "$(echo $destination_path|cut -d/ -f-6)"
@@ -2292,275 +2206,273 @@ function configure_mame_mamedev() {
     #customized parts of the function "configure_mame" of the mame.sh module-script from RetroPie to get mamedev.sh fully working on ArchyPie as that function does not do the job correctly
     local system="mame"
 
-        mkRomDir "arcade"
-        mkRomDir "$system"
+	mkRomDir "arcade"
+	mkRomDir "$system"
 
-        # Create required MAME directories underneath the ROM directory
-        local mame_sub_dir
-        for mame_sub_dir in artwork cfg comments diff inp nvram samples scores snap sta; do
-            mkRomDir "$system/$mame_sub_dir"
-        done
+	# Create required MAME directories underneath the ROM directory
+	local mame_sub_dir
+	for mame_sub_dir in artwork cfg comments diff inp nvram samples scores snap sta; do
+		mkRomDir "$system/$mame_sub_dir"
+	done
 
-        # Create a BIOS directory, where people will be able to store their BIOS files, separate from ROMs
-        mkUserDir "$biosdir/$system"
+	# Create a BIOS directory, where people will be able to store their BIOS files, separate from ROMs
+	mkUserDir "$biosdir/$system"
 
-        # Create the configuration directory for the MAME ini files
-        moveConfigDir "$home/.mame" "$configdir/$system"
+	# Create the configuration directory for the MAME ini files
+	moveConfigDir "$home/.mame" "$configdir/$system"
 
-        # Create new INI files if they do not already exist
-        # Create MAME config file
-        local temp_ini_mame="$(mktemp)"
-        local mameinstalldir="$rootdir/emulators/mame"
+	# Create new INI files if they do not already exist
+	# Create MAME config file
+	local temp_ini_mame="$(mktemp)"
+	local mameinstalldir="$rootdir/emulators/mame"
 
-        iniConfig " " "" "$temp_ini_mame"
-        iniSet "rompath"            "$romdir/$system;$romdir/arcade;$biosdir/$system"
-        iniSet "hashpath"           "$mameinstalldir/hash"
-        iniSet "samplepath"         "$romdir/$system/samples;$romdir/arcade/samples"
-        iniSet "artpath"            "$configdir/$system/artwork;$romdir/$system/artwork;$romdir/arcade/artwork"
-        iniSet "ctrlrpath"          "$mameinstalldir/ctrlr"
-        iniSet "pluginspath"        "$mameinstalldir/plugins"
-        iniSet "languagepath"       "$mameinstalldir/language"
+	iniConfig " " "" "$temp_ini_mame"
+	iniSet "rompath"            "$romdir/$system;$romdir/arcade;$biosdir/$system"
+	iniSet "hashpath"           "$mameinstalldir/hash"
+	iniSet "samplepath"         "$romdir/$system/samples;$romdir/arcade/samples"
+	iniSet "artpath"            "$configdir/$system/artwork;$romdir/$system/artwork;$romdir/arcade/artwork"
+	iniSet "ctrlrpath"          "$mameinstalldir/ctrlr"
+	iniSet "pluginspath"        "$mameinstalldir/plugins"
+	iniSet "languagepath"       "$mameinstalldir/language"
 
-        iniSet "cfg_directory"      "$romdir/$system/cfg"
-        iniSet "nvram_directory"    "$romdir/$system/nvram"
-        iniSet "input_directory"    "$romdir/$system/inp"
-        iniSet "state_directory"    "$romdir/$system/sta"
-        iniSet "snapshot_directory" "$romdir/$system/snap"
-        iniSet "diff_directory"     "$romdir/$system/diff"
-        iniSet "comment_directory"  "$romdir/$system/comments"
+	iniSet "cfg_directory"      "$romdir/$system/cfg"
+	iniSet "nvram_directory"    "$romdir/$system/nvram"
+	iniSet "input_directory"    "$romdir/$system/inp"
+	iniSet "state_directory"    "$romdir/$system/sta"
+	iniSet "snapshot_directory" "$romdir/$system/snap"
+	iniSet "diff_directory"     "$romdir/$system/diff"
+	iniSet "comment_directory"  "$romdir/$system/comments"
 
-        iniSet "skip_gameinfo" "1"
-        iniSet "plugin" "hiscore"
-        iniSet "samplerate" "44100"
+	iniSet "skip_gameinfo" "1"
+	iniSet "plugin" "hiscore"
+	iniSet "samplerate" "44100"
 
-        # Raspberry Pis show improved performance using accelerated mode which enables SDL_RENDERER_TARGETTEXTURE.
-        # On RPI4 it uses OpenGL as a renderer, while on earlier RPIs it uses OpenGLES2 as the renderer. 
-        # X86 Ubuntu by default uses OpenGL as a renderer, but SDL doesn't have target texture enabled as default.
-        # Enabling accel will use target texture on X86 Ubuntu (and likely other X86 Linux platforms).
-        iniSet "video" "accel"
+	# Raspberry Pis show improved performance using accelerated mode which enables SDL_RENDERER_TARGETTEXTURE.
+	# On RPI4 it uses OpenGL as a renderer, while on earlier RPIs it uses OpenGLES2 as the renderer. 
+	# X86 Ubuntu by default uses OpenGL as a renderer, but SDL doesn't have target texture enabled as default.
+	# Enabling accel will use target texture on X86 Ubuntu (and likely other X86 Linux platforms).
+	iniSet "video" "accel"
 
-        copyDefaultConfig "$temp_ini_mame" "$configdir/$system/mame.ini"
-        rm "$temp_ini_mame"
+	copyDefaultConfig "$temp_ini_mame" "$configdir/$system/mame.ini"
+	rm "$temp_ini_mame"
 
-        # Create MAME UI config file
-        local temp_ini_ui="$(mktemp)"
-        iniConfig " " "" "$temp_ini_ui"
-        iniSet "scores_directory" "$romdir/$system/scores"
-        copyDefaultConfig "$temp_ini_ui" "$configdir/$system/ui.ini"
-        rm "$temp_ini_ui"
+	# Create MAME UI config file
+	local temp_ini_ui="$(mktemp)"
+	iniConfig " " "" "$temp_ini_ui"
+	iniSet "scores_directory" "$romdir/$system/scores"
+	copyDefaultConfig "$temp_ini_ui" "$configdir/$system/ui.ini"
+	rm "$temp_ini_ui"
 
-        # Create MAME Plugin config file
-        local temp_ini_plugin="$(mktemp)"
-        iniConfig " " "" "$temp_ini_plugin"
-        iniSet "hiscore" "1"
-        copyDefaultConfig "$temp_ini_plugin" "$configdir/$system/plugin.ini"
-        rm "$temp_ini_plugin"
+	# Create MAME Plugin config file
+	local temp_ini_plugin="$(mktemp)"
+	iniConfig " " "" "$temp_ini_plugin"
+	iniSet "hiscore" "1"
+	copyDefaultConfig "$temp_ini_plugin" "$configdir/$system/plugin.ini"
+	rm "$temp_ini_plugin"
 
-        # Create MAME Hi Score config file
-        local temp_ini_hiscore="$(mktemp)"
-        iniConfig " " "" "$temp_ini_hiscore"
-        iniSet "hi_path" "$romdir/$system/scores"
-        copyDefaultConfig "$temp_ini_hiscore" "$configdir/$system/hiscore.ini"
-        rm "$temp_ini_hiscore"
+	# Create MAME Hi Score config file
+	local temp_ini_hiscore="$(mktemp)"
+	iniConfig " " "" "$temp_ini_hiscore"
+	iniSet "hi_path" "$romdir/$system/scores"
+	copyDefaultConfig "$temp_ini_hiscore" "$configdir/$system/hiscore.ini"
+	rm "$temp_ini_hiscore"
 
-    addEmulator 0 "mame" "arcade" "$mameinstalldir/mame %BASENAME%"
-    addEmulator 1 "mame" "$system" "$mameinstalldir/mame %BASENAME%"
+	addEmulator 0 "mame" "arcade" "$mameinstalldir/mame %BASENAME%"
+	addEmulator 1 "mame" "$system" "$mameinstalldir/mame %BASENAME%"
 
-    addSystem "arcade"
-    addSystem "$system"
+	addSystem "arcade"
+	addSystem "$system"
 }
 
 
 function create_00index_file_mamedev() {
 
-    local destination_path="$2"
-    local search_input="$1"
-    local index_file="0 rom-index 0"
-    clear
-    mkdir -p $destination_path
-    IFS=$'\n' restricted_download_csv=($(cut -d "," -f 2 <<<$(awk $search_input<<<$(sed 's/\" \"/\"\n\"/g'<<<"${mamedev_csv[*]}"))));unset IFS
+	local destination_path="$2"
+	local search_input="$1"
+	local index_file="0 rom-index 0"
+	clear
+	mkdir -p $destination_path
+	IFS=$'\n' restricted_download_csv=($(cut -d "," -f 2 <<<$(awk $search_input<<<$(sed 's/\" \"/\"\n\"/g'<<<"${mamedev_csv[*]}"))));unset IFS
 	echo "creating a "$index_file" file for this specific category"
-    [[ -f "$destination_path/$index_file" ]] && rm "$destination_path/$index_file" 2>&1
-    for rd in ${!restricted_download_csv[@]};do    
-    echo ${restricted_download_csv[$rd]} >> "$destination_path/$index_file"
-    done
-    chown -R $user:$user "$destination_path"
+	[[ -f "$destination_path/$index_file" ]] && rm "$destination_path/$index_file" 2>&1
+	for rd in ${!restricted_download_csv[@]};do    
+		echo ${restricted_download_csv[$rd]} >> "$destination_path/$index_file"
+	done
+	chown -R $user:$user "$destination_path"
 }
 
 
 function create_systems_list_mamedev() {
-    local csv=()
-    #we have to do a global comparison as the alfabetical order contains also a letter in the $1
-    if [[ $1 == descriptions* ]];then
-    #here we store the sorted mamedev_csv values in the csv array
-    #we sort on the third colunm which contain the descriptions of the sytems
-    #to get sorted lists from the full array we need to split it in lines withe the sed command and then grep on what we want
-    #to keep the first reserved csv line, that was added with (echo \",,,,\") we need to grep that pattern
-    #like this (for one or the other ): grep 'pattern1\|pattern2'
-    #like this (for one and the other ): grep -P '^(?=.*pattern1)(?=.*pattern2)'
-    #because we need a combination of "or" and "and" I found more information in the next link
-    #more info https://www.shellhacks.com/grep-or-grep-and-grep-not-match-multiple-patterns/
-    #using awk we can combined (and)&& (or)|| and also ignore case sensitive
-    #(fast)sorting (and equal to) is possible on patterns up to 5 options ($2 -$6)
-    #(slower)sorting (not equal to) is possible on patterns for one option ($2) adding an ! after the pattern 
-    #before sorting it passes an awk command for the second time (read from right to left)
-    #this command adds another column with the lenght of the item we want to sort on
-    #adding this will sort shorter items before longer items
-    #https://stackoverflow.com/questions/36896499/bash-sort-by-number-and-word-length-and-alphabetically  
-    IFS=$'\n' csv=($(sort -t"," -k5,5nr -k3,3 --ignore-case<<<$(awk '{print $0","length($3)}'<<<$(awk "{IGNORECASE = 1} $([[ $2 == *\! ]] && echo \!)/"$(echo $2|sed 's/\!//')"/ && /$3/ && /$4/ && /$5/ && /$6/ || /\",,,,\"/"<<<$(sed 's/" "/"\n"/g' <<<"${mamedev_csv[*]}")))));unset IFS
-    #this is an aternative but much slower
-    #while read system_read; do csv+=("$system_read");done < <(IFS=$'\n';echo "${mamedev_csv[*]}"|sort -t"," -d -k 3 --ignore-case;unset IFS)
-    else
-    #here we store the sorted mamedev_csv values in the csv array
-    #we sort on the second colunm which contain the system names
-    IFS=$'\n' csv=($(sort -t"," -k5,5nr -k2,2 --ignore-case<<<$(awk '{print $0","length($2)}'<<<$(awk " {IGNORECASE = 1} $([[ $2 == *\! ]] && echo \!)/"$(echo $2|sed 's/\!//')"/ && /$3/ && /$4/ && /$5/ && /$6/ || /\",,,,\"/"<<<$(sed 's/" "/"\n"/g' <<<"${mamedev_csv[*]}")))));unset IFS
-    #this is an aternative but much slower
-    #while read system_read; do csv+=("$system_read");done < <(IFS=$'\n';echo "${mamedev_csv[*]}"|sort -t"," -d -k 2 --ignore-case;unset IFS)
-    fi
+	local csv=()
+	#we have to do a global comparison as the alfabetical order contains also a letter in the $1
+	if [[ $1 == descriptions* ]];then
+		#here we store the sorted mamedev_csv values in the csv array
+		#we sort on the third colunm which contain the descriptions of the sytems
+		#to get sorted lists from the full array we need to split it in lines withe the sed command and then grep on what we want
+		#to keep the first reserved csv line, that was added with (echo \",,,,\") we need to grep that pattern
+		#like this (for one or the other ): grep 'pattern1\|pattern2'
+		#like this (for one and the other ): grep -P '^(?=.*pattern1)(?=.*pattern2)'
+		#because we need a combination of "or" and "and" I found more information in the next link
+		#more info https://www.shellhacks.com/grep-or-grep-and-grep-not-match-multiple-patterns/
+		#using awk we can combined (and)&& (or)|| and also ignore case sensitive
+		#(fast)sorting (and equal to) is possible on patterns up to 5 options ($2 -$6)
+		#(slower)sorting (not equal to) is possible on patterns for one option ($2) adding an ! after the pattern 
+		#before sorting it passes an awk command for the second time (read from right to left)
+		#this command adds another column with the lenght of the item we want to sort on
+		#adding this will sort shorter items before longer items
+		#https://stackoverflow.com/questions/36896499/bash-sort-by-number-and-word-length-and-alphabetically  
+		IFS=$'\n' csv=($(sort -t"," -k5,5nr -k3,3 --ignore-case<<<$(awk '{print $0","length($3)}'<<<$(awk "{IGNORECASE = 1} $([[ $2 == *\! ]] && echo \!)/"$(echo $2|sed 's/\!//')"/ && /$3/ && /$4/ && /$5/ && /$6/ || /\",,,,\"/"<<<$(sed 's/" "/"\n"/g' <<<"${mamedev_csv[*]}")))));unset IFS
+		#this is an aternative but much slower
+		#while read system_read; do csv+=("$system_read");done < <(IFS=$'\n';echo "${mamedev_csv[*]}"|sort -t"," -d -k 3 --ignore-case;unset IFS)
+	else
+		#here we store the sorted mamedev_csv values in the csv array
+		#we sort on the second colunm which contain the system names
+		IFS=$'\n' csv=($(sort -t"," -k5,5nr -k2,2 --ignore-case<<<$(awk '{print $0","length($2)}'<<<$(awk " {IGNORECASE = 1} $([[ $2 == *\! ]] && echo \!)/"$(echo $2|sed 's/\!//')"/ && /$3/ && /$4/ && /$5/ && /$6/ || /\",,,,\"/"<<<$(sed 's/" "/"\n"/g' <<<"${mamedev_csv[*]}")))));unset IFS
+		#this is an aternative but much slower
+		#while read system_read; do csv+=("$system_read");done < <(IFS=$'\n';echo "${mamedev_csv[*]}"|sort -t"," -d -k 2 --ignore-case;unset IFS)
+	fi
 
-    #when the csv array is not filled, if searching patterns are not found, index 1 and above are empty
-    #here we add an extra line into index 1, so an empty dialog will appear without any errors  
-    [[ -z ${csv[1]} ]] && csv+=( "\",error : search pattern is not found : try again !,,,\"" )
+	#when the csv array is not filled, if searching patterns are not found, index 1 and above are empty
+	#here we add an extra line into index 1, so an empty dialog will appear without any errors  
+	[[ -z ${csv[1]} ]] && csv+=( "\",error : search pattern is not found : try again !,,,\"" )
 
-    build_menu_mamedev $1
+	build_menu_mamedev $1
 }
 
 
 function build_menu_mamedev() {
-    local options=()
-    local default
-    local i
-    local run
-    local lastdescriptionmatch
-    local lastcategorymatch
-    IFS=","
-    if [[ $1 == descriptions ]]; then
-    for i in ${!csv[@]}; do set ${csv[$i]}; options+=("$i" "$3");done
-    fi
-    for letter in {A..Z}
-    do 
-      if [[ $1 == descriptions$letter ]]; then
-        #not needed here, but ${letter^}* converts letter into uppercase
-        #${letter,}* converts letter into lowercase
-        #so this function check on both uppercase and lowercase
-        for i in ${!csv[@]}; do set ${csv[$i]}; [[ $3 == $letter* ]] || [[ $3 == ${letter,}* ]] && options+=("$i" "$3");done
-      fi
-    done
-    if [[ $1 == descriptions# ]]; then
-      for i in ${!csv[@]}; do set ${csv[$i]}; [[ $3 != [A-Z]* ]] && [[ $3 != [a-z]* ]] && options+=("$i" "$3");done
-    fi
-    for letter in {A..Z}
-    do 
-      if [[ $1 == systems$letter ]]; then
-        #${letter,}* converts letter into lowercase
-        for i in ${!csv[@]}; do set ${csv[$i]}; [[ $2 == ${letter,}* ]] && options+=("$i" "$2");done
-      fi
-    done
-    if [[ $1 == systems# ]]; then
-      for i in ${!csv[@]}; do set ${csv[$i]}; [[ $2 != [a-z]* ]] && options+=("$i" "$2");done
-    fi
-    if [[ -z $1 ]] || [[ $1 == systems ]]; then
-    for i in ${!csv[@]}; do set ${csv[$i]}; options+=("$i" "$2");done
-    fi
-    #remove option 0 (value 0 and 1) so the menu begins with 1
-    unset 'options[0]'; unset 'options[1]' 
-    while true; do
-        local cmd=(dialog --colors --no-collapse --help-button --default-item "$default" --backtitle "$__backtitle" --menu "Version ${rp_module_version}                     (using database ${rp_module_version_database})" 22 76 16)
-        local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-        default="$choice"
-        if [[ -n "$choice" ]]; then
-            joy2keyStop
-            joy2keyStart 0x00 0x00 kich1 kdch1 0x20 0x71
-            clear
-            #run what's in the fourth "column", but with install_system_mamedev add the selected system
-            #this is done because adding the string in the `sed` function will not work
-            #and now we can paste the standalone install_system_mamedev within the function
-            #so we can work on one install_system_mamedev and paste it in when it is updated
-	    if [[ $choice == HELP* ]];then
-	        IFS=","
-		run="$(set ${csv[$(echo $choice|cut -d ' ' -f2)]};echo $9)"
-	    else
-		IFS=","
-		if [[ "$(set ${csv[$choice]};echo $4)" == install_system_mamedev ]];then 
-		run="$(set ${csv[$choice]};echo $4) $(set ${csv[$choice]};echo $2)"
-		else
-		run="$(set ${csv[$choice]};echo $4)"
+	local options=()
+	local default
+	local i
+	local run
+	local lastdescriptionmatch
+	local lastcategorymatch
+	IFS=","
+	if [[ $1 == descriptions ]]; then
+		for i in ${!csv[@]}; do set ${csv[$i]}; options+=("$i" "$3");done
+	fi
+	for letter in {A..Z}
+	do 
+		if [[ $1 == descriptions$letter ]]; then
+			#not needed here, but ${letter^}* converts letter into uppercase
+			#${letter,}* converts letter into lowercase
+			#so this function check on both uppercase and lowercase
+			for i in ${!csv[@]}; do set ${csv[$i]}; [[ $3 == $letter* ]] || [[ $3 == ${letter,}* ]] && options+=("$i" "$3");done
 		fi
-	    fi
-            joy2keyStop
-            joy2keyStart
-            unset IFS
-	    eval $run
-	    #debug
-	    #echo $run;echo press;read
+	done
+	if [[ $1 == descriptions# ]]; then
+		for i in ${!csv[@]}; do set ${csv[$i]}; [[ $3 != [A-Z]* ]] && [[ $3 != [a-z]* ]] && options+=("$i" "$3");done
+	fi
+	for letter in {A..Z}
+	do 
+		if [[ $1 == systems$letter ]]; then
+			#${letter,}* converts letter into lowercase
+			for i in ${!csv[@]}; do set ${csv[$i]}; [[ $2 == ${letter,}* ]] && options+=("$i" "$2");done
+		fi
+	done
+	if [[ $1 == systems# ]]; then
+		for i in ${!csv[@]}; do set ${csv[$i]}; [[ $2 != [a-z]* ]] && options+=("$i" "$2");done
+	fi
+	if [[ -z $1 ]] || [[ $1 == systems ]]; then
+		for i in ${!csv[@]}; do set ${csv[$i]}; options+=("$i" "$2");done
+	fi
+	#remove option 0 (value 0 and 1) so the menu begins with 1
+	unset 'options[0]'; unset 'options[1]' 
+	while true; do
+		local cmd=(dialog --colors --no-collapse --help-button --default-item "$default" --backtitle "$__backtitle" --menu "Version ${rp_module_version}                     (using database ${rp_module_version_database})" 22 76 16)
+		local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+		default="$choice"
+		if [[ -n "$choice" ]]; then
+			joy2keyStop
+			joy2keyStart 0x00 0x00 kich1 kdch1 0x20 0x71
+			clear
+			#run what's in the fourth "column", but with install_system_mamedev add the selected system
+			#this is done because adding the string in the `sed` function will not work
+			#and now we can paste the standalone install_system_mamedev within the function
+			#so we can work on one install_system_mamedev and paste it in when it is updated
+			if [[ $choice == HELP* ]];then
+				IFS=","
+				run="$(set ${csv[$(echo $choice|cut -d ' ' -f2)]};echo $9)"
+			else
+				IFS=","
+				if [[ "$(set ${csv[$choice]};echo $4)" == install_system_mamedev ]];then 
+					run="$(set ${csv[$choice]};echo $4) $(set ${csv[$choice]};echo $2)"
+				else
+					run="$(set ${csv[$choice]};echo $4)"
+				fi
+			fi
+			joy2keyStop
+			joy2keyStart
+			unset IFS
+			eval $run
+			#debug
+			#echo $run;echo press;read
 	    
-	    #break the running function
-	    [[ $run == *#break* ]] && break
-	    #refresh the csv array from the running function and update the menu
-	    if [[ $run == *#refresh* ]];then
-			local options=()
-			IFS=","
-			run="$(set ${csv[$choice]};echo $5)"
-			eval $run refresh
-			for i in ${!csv[@]}; do set ${csv[$i]}; options+=("$i" "$2");done
-			#remove option 0 (value 0 and 1) so the menu begins with 1
-			unset 'options[0]'; unset 'options[1]' 
-	    fi
-
+			#break the running function
+			[[ $run == *#break* ]] && break
+			#refresh the csv array from the running function and update the menu
+			if [[ $run == *#refresh* ]];then
+				local options=()
+				IFS=","
+				run="$(set ${csv[$choice]};echo $5)"
+				eval $run refresh
+				for i in ${!csv[@]}; do set ${csv[$i]}; options+=("$i" "$2");done
+				#remove option 0 (value 0 and 1) so the menu begins with 1
+				unset 'options[0]'; unset 'options[1]' 
+			fi
         else
             break
         fi
-    done
-    unset IFS
+	done
+	unset IFS
 }
 
 
 function install_binary_from_gdrive_mamedev () {
-#$1=mame/lr-mess/lr-mame $2=destination-path $3=binary-name $4=gdrive_file_id
-echo "remove current $1"
-rm -r $2/$1 2>&-
-mkdir -p $2/$1 2>&-
-echo "get $1 binary from gdrive and install it"
-su $user -c "curl https://raw.githubusercontent.com/matthuisman/gdrivedl/master/gdrivedl.py | /home/$user/.local/bin/uv run --python 3.11 - https://drive.google.com/file/d/$4 -m -P \"/tmp\"";\
-[[ $3 == *zip ]] && unzip /tmp/$3 -d $2
-[[ $3 == *7z ]] && 7za x /tmp/$3 -o$2
-$scriptdir/${rootdir##*/}_packages.sh $1 depends
-if [[ $1 == mame ]];then
-	configure_$1_mamedev
-	chmod -R 755 $rootdir/emulators/mame #fix permission issues with stickfreaks binaries
-fi
-[[ $1 == lr* ]] && $scriptdir/${rootdir##*/}_packages.sh $1 configure
+	#$1=mame/lr-mess/lr-mame $2=destination-path $3=binary-name $4=gdrive_file_id
+	echo "remove current $1"
+	rm -r $2/$1 2>&-
+	mkdir -p $2/$1 2>&-
+	echo "get $1 binary from gdrive and install it"
+	su $user -c "curl https://raw.githubusercontent.com/matthuisman/gdrivedl/master/gdrivedl.py | /home/$user/.local/bin/uv run --python 3.11 - https://drive.google.com/file/d/$4 -m -P \"/tmp\"";\
+	[[ $3 == *zip ]] && unzip /tmp/$3 -d $2
+	[[ $3 == *7z ]] && 7za x /tmp/$3 -o$2
+	$scriptdir/${rootdir##*/}_packages.sh $1 depends
+	if [[ $1 == mame ]];then
+		configure_$1_mamedev
+		chmod -R 755 $rootdir/emulators/mame #fix permission issues with stickfreaks binaries
+	fi
+	[[ $1 == lr* ]] && $scriptdir/${rootdir##*/}_packages.sh $1 configure
 }
 
 
 function install_mame_from_stickfreaks_mamedev () {
-echo "remove current mame"
-rm -r $emudir/mame 2>&-
-mkdir -p $emudir/mame 2>&-
-echo "get mame binary from stickfreaks and install it"
-#$1=mame-binary $2=folder (if older binary then "old/" otherwise empty)
-wget -c https://stickfreaks.com/mame/$2$1 $emudir/mame -P $emudir/mame
-7za x $emudir/mame/*.7z -o$emudir/mame/
-strip $emudir/mame/mame
-$scriptdir/${rootdir##*/}_packages.sh mame depends
-configure_mame_mamedev
+	echo "remove current mame"
+	rm -r $emudir/mame 2>&-
+	mkdir -p $emudir/mame 2>&-
+	echo "get mame binary from stickfreaks and install it"
+	#$1=mame-binary $2=folder (if older binary then "old/" otherwise empty)
+	wget -c https://stickfreaks.com/mame/$2$1 $emudir/mame -P $emudir/mame
+	7za x $emudir/mame/*.7z -o$emudir/mame/
+	strip $emudir/mame/mame
+	$scriptdir/${rootdir##*/}_packages.sh mame depends
+	configure_mame_mamedev
 }
 
 
 function install_or_remove_run_mess_script_mamedev() {
-    if [[ -f $scriptdir/scriptmodules/run_mess.sh ]];then
-    rm $scriptdir/scriptmodules/run_mess.sh
-    else
-    echo "install @valerino run_mess.sh script (the RusselB version)"
-    wget -q -nv -O $scriptdir/scriptmodules/run_mess.sh https://raw.githubusercontent.com/FollyMaddy/RetroPie-Share/main/00-scriptmodules-00/run_mess.sh
-    #change ownership to normal user
-    chown $user:$user "$scriptdir/scriptmodules/run_mess.sh"
-    # ensure run_mess.sh script is executable
-    chmod 755 "$scriptdir/scriptmodules/run_mess.sh"
-    fi
-    rp_registerAllModules
+	if [[ -f $scriptdir/scriptmodules/run_mess.sh ]];then
+		rm $scriptdir/scriptmodules/run_mess.sh
+	else
+		echo "install @valerino run_mess.sh script (the RusselB version)"
+		wget -q -nv -O $scriptdir/scriptmodules/run_mess.sh https://raw.githubusercontent.com/FollyMaddy/RetroPie-Share/main/00-scriptmodules-00/run_mess.sh
+		#change ownership to normal user
+		chown $user:$user "$scriptdir/scriptmodules/run_mess.sh"
+		#ensure run_mess.sh script is executable
+		chmod 755 "$scriptdir/scriptmodules/run_mess.sh"
+	fi
+	rp_registerAllModules
 }
-
 
 
 function install_or_restore_runcommand_script_mamedev() {
@@ -2568,27 +2480,27 @@ function install_or_restore_runcommand_script_mamedev() {
 		#install and use my patched runcommand.sh with extra replacement tokens or restore to the original without ...
 		if [[ -f $rootdir/supplementary/runcommand/runcommand.sh ]];then
 			if [[ $(sha1sum $rootdir/supplementary/runcommand/runcommand.sh 2>&-) != 739b6c7e50c6b4e2d048ea85f93ab8c71b1a1d74* ]];then
-			echo "install patched runcommand.sh script with extra replace tokens"
-			wget -q -nv -O $rootdir/supplementary/runcommand/runcommand.sh https://raw.githubusercontent.com/FollyMaddy/RetroPie-Share/main/00-scriptmodules-00/runcommand.sh
+				echo "install patched runcommand.sh script with extra replace tokens"
+				wget -q -nv -O $rootdir/supplementary/runcommand/runcommand.sh https://raw.githubusercontent.com/FollyMaddy/RetroPie-Share/main/00-scriptmodules-00/runcommand.sh
 			else
-			rm $rootdir/supplementary/runcommand/runcommand.sh
-			cp $scriptdir/scriptmodules/supplementary/runcommand/runcommand.sh $rootdir/supplementary/runcommand/runcommand.sh
+				rm $rootdir/supplementary/runcommand/runcommand.sh
+				cp $scriptdir/scriptmodules/supplementary/runcommand/runcommand.sh $rootdir/supplementary/runcommand/runcommand.sh
 			fi
 		else
-		show_message_mamedev "Something went wrong :\nNo runcommand.sh detected\n\nMake sure you install it from the core packages.\nIf this somehow doesn't work then try to remove it first before installing it again."
+			show_message_mamedev "Something went wrong :\nNo runcommand.sh detected\n\nMake sure you install it from the core packages.\nIf this somehow doesn't work then try to remove it first before installing it again."
 		fi
 	else
 		#install and use my patched runcommand.sh with extra replacement tokens or restore to the original without ...
 		if [[ -f $rootdir/supplementary/runcommand/runcommand.sh ]];then
 			if [[ $(sha1sum $rootdir/supplementary/runcommand/runcommand.sh 2>&-) != cd620d05484350afa6186ded4e5c3ca59c6d10bd* ]];then
-			echo "install patched runcommand.sh script with extra replace tokens"
-			wget -q -nv -O $rootdir/supplementary/runcommand/runcommand.sh https://raw.githubusercontent.com/FollyMaddy/RetroPie-Share/main/00-scriptmodules-00/runcommand-archypie.sh
+				echo "install patched runcommand.sh script with extra replace tokens"
+				wget -q -nv -O $rootdir/supplementary/runcommand/runcommand.sh https://raw.githubusercontent.com/FollyMaddy/RetroPie-Share/main/00-scriptmodules-00/runcommand-archypie.sh
 			else
-			rm $rootdir/supplementary/runcommand/runcommand.sh
-			cp $scriptdir/scriptmodules/supplementary/runcommand/runcommand.sh $rootdir/supplementary/runcommand/runcommand.sh
+				rm $rootdir/supplementary/runcommand/runcommand.sh
+				cp $scriptdir/scriptmodules/supplementary/runcommand/runcommand.sh $rootdir/supplementary/runcommand/runcommand.sh
 			fi
 		else
-		show_message_mamedev "Something went wrong :\nNo runcommand.sh detected\n\nMake sure you install it from the core packages.\nIf this somehow doesn't work then try to remove it first before installing it again."
+			show_message_mamedev "Something went wrong :\nNo runcommand.sh detected\n\nMake sure you install it from the core packages.\nIf this somehow doesn't work then try to remove it first before installing it again."
 		fi
 	fi
 	rp_registerAllModules
@@ -2596,26 +2508,26 @@ function install_or_restore_runcommand_script_mamedev() {
 
 
 function install_system_mamedev() {
-#if this addon doesn't function correctly then revert to 274.01
-#if it does function then the others from the function "install_system_proceed_mamedev" can probably be added over here too at a later stage
-#might be that some from the extra can also be added over here
+	#if this addon doesn't function correctly then revert to 274.01
+	#if it does function then the others from the function "install_system_proceed_mamedev" can probably be added over here too at a later stage
+	#might be that some from the extra can also be added over here
 
-#this is a subfunction to add extra options to a driver by default before using the install_system_proceed_mamedev function
-#it's created so extra media slotoptions can be added
-#by using this extra media slotoptions are detected for creating proper runcommands
-option1="$1"
-option2="$2"
-option3="$3"
-option4="$4"
-option5="$5"
-option6="$6"
-option7="$7"
-option8="$8"
-option9="$9"
-option10="${10}"
-#
-if [[ -z $3 ]];then
-	[[ $1 == aa5000 ]] && show_message_mamedev "\
+	#this is a subfunction to add extra options to a driver by default before using the install_system_proceed_mamedev function
+	#it's created so extra media slotoptions can be added
+	#by using this extra media slotoptions are detected for creating proper runcommands
+	option1="$1"
+	option2="$2"
+	option3="$3"
+	option4="$4"
+	option5="$5"
+	option6="$6"
+	option7="$7"
+	option8="$8"
+	option9="$9"
+	option10="${10}"
+
+	if [[ -z $3 ]];then
+		[[ $1 == aa5000 ]] && show_message_mamedev "\
 By default some extras is added for the archimedes $1:\n\
 - 4M of ram\n\
 - an extra floppydrive\n\
@@ -2626,14 +2538,14 @@ Use the application !Configure to add the extra devices.\n\
 After reset you will notice that the devices have been added.\n\n\
 Be aware of the fact that games with 2 floppies do not always work when using 2 floppy drives, in that case use 1 floppy drive.\
 "
-	[[ $1 == aa5000 ]] && option3="-ram 4M -upc:fdc:1 35hd -upc:ide:1 hdd"
+		[[ $1 == aa5000 ]] && option3="-ram 4M -upc:fdc:1 35hd -upc:ide:1 hdd"
 	
-	#make sure the script is not cheching for using other options anymore
-	option8="0"
-	clear
-fi
-#
-install_system_proceed_mamedev \
+		#make sure the script is not cheching for using other options anymore
+		option8="0"
+		clear
+	fi
+
+	install_system_proceed_mamedev \
 "$option1" \
 "$option2" \
 "$option3" \
